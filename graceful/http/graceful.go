@@ -243,7 +243,7 @@ func (s *server) Restart() {
 		return
 	}
 
-	logger.Infof("restart success, new pid: %d, ppid: %d", process.Pid)
+	logger.Infof("restart success, new pid: %d", process.Pid)
 
 	// 父进程退出
 	s.httpServer.Close()
