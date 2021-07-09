@@ -93,11 +93,11 @@ func IDInfo(code string) (*IDCard, error) {
 func IDGenerate(year, month, day, sex int, areaCode string, count int) ([]string, error) {
 	// 验证地域信息是否存在
 	if _, exist := areas[areaCode]; !exist {
-		return nil, fmt.Errorf("Area code not found: %s", areaCode)
+		return nil, fmt.Errorf("area code not found: %s", areaCode)
 	}
 	// 验证性别是否正确
 	if sex != 0 && sex != 1 {
-		return nil, errors.New("Sex error, must be 0 (female) or 1 (male)")
+		return nil, errors.New("sex error, must be 0 (female) or 1 (male)")
 	}
 	// 验证日期是否合法
 	// 生成身份证信息不判断是否尚未出生，或者岁数过大的问题
@@ -163,7 +163,7 @@ func (idCard *IDCard) parse() error {
 	// 前六位为地区编码
 	areaCode := code[:6]
 	if _, exist := areas[areaCode]; !exist {
-		return fmt.Errorf("Area code not found: %s", areaCode)
+		return fmt.Errorf("area code not found: %s", areaCode)
 	}
 	if err := idCard.parseAreaName(areaCode); err != nil {
 		return err
@@ -181,12 +181,12 @@ func (idCard *IDCard) parse() error {
 
 	// 不可以超过今天
 	if ibirth > inow {
-		return errors.New("Not yet born")
+		return errors.New("not yet born")
 	}
 
 	// 岁数太大，不正常
 	if (inow-ibirth)/10000 > 150 {
-		return errors.New("There is no such long-lived person")
+		return errors.New("there is no such long-lived person")
 	}
 	idCard.Year, _ = strconv.Atoi(code[6:10])
 	idCard.Month, _ = strconv.Atoi(code[10:12])
@@ -204,7 +204,7 @@ func (idCard *IDCard) parse() error {
 
 	// 校验码检测
 	if calcCheckCode(code) != code[len(code)-1] {
-		return errors.New("Check code detection failed")
+		return errors.New("check code detection failed")
 	}
 
 	return nil
@@ -215,7 +215,7 @@ func (idCard *IDCard) parseAreaName(areaCode string) error {
 	province, city := areaCode[:2], areaCode[2:4]
 	provinceName, exist := areas[fmt.Sprintf("%s0000", province)]
 	if !exist {
-		return errors.New("Province code error")
+		return errors.New("province code error")
 	}
 	idCard.Province = provinceName
 
@@ -229,7 +229,7 @@ func (idCard *IDCard) parseAreaName(areaCode string) error {
 
 	countyName, exist := areas[areaCode]
 	if !exist {
-		return errors.New("County code error")
+		return errors.New("county code error")
 	}
 	idCard.County = countyName
 
