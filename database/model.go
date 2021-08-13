@@ -10,6 +10,6 @@ type Model struct {
 
 // ModelID 替代 gorm.Model，带自增 id
 type ModelID struct {
-	ID uint `gorm:"primaryKey"`
+	ID uint `gorm:"primaryKey;AUTO_INCREMENT"`
 	Model
 }
