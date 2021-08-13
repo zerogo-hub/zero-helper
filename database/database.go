@@ -6,10 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jinzhu/gorm"
-
-	// 导入数据接口
-	_ "github.com/go-sql-driver/mysql"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
 // Database 数据库
@@ -46,31 +44,36 @@ func (d *database) config() *config {
 
 // Open ..
 func (d *database) Open() error {
-	url, err := d.url()
+	dsn, err := d.dsn()
 	if err != nil {
 		return err
 	}
 
-	db, err := gorm.Open(d.conf.dialect, url)
+	db, err := gorm.Open(mysql.New(mysql.Config{
+		DSN:                       dsn,
+		DefaultStringSize:         256,   // string 类型字段的默认长度
+		DisableDatetimePrecision:  true,  // 禁用 datetime 精度，MySQL 5.6 之前的数据库不支持
+		DontSupportRenameIndex:    true,  // 重命名索引时采用删除并新建的方式，MySQL 5.7 之前的数据库和 MariaDB 不支持重命名索引
+		SkipInitializeWithVersion: false, // 根据当前 MySQL 版本自动配置
+	}), &gorm.Config{})
 	if err != nil {
 		return err
 	}
 
-	db.LogMode(d.conf.logDebug)
+	sqlDB, err := db.DB()
+	if err != nil {
+		return err
+	}
 
 	if d.conf.maxIdleConns > 0 {
-		db.DB().SetMaxIdleConns(d.conf.maxIdleConns)
+		sqlDB.SetMaxIdleConns(d.conf.maxIdleConns)
 	}
 	if d.conf.maxOpenConns > 0 {
-		db.DB().SetMaxOpenConns(d.conf.maxOpenConns)
+		sqlDB.SetMaxOpenConns(d.conf.maxOpenConns)
 	}
 	if d.conf.maxConnLifeTime > 0 {
-		db.DB().SetConnMaxLifetime(time.Duration(d.conf.maxConnLifeTime) * time.Second)
+		sqlDB.SetConnMaxLifetime(time.Duration(d.conf.maxConnLifeTime) * time.Second)
 	}
-
-	// 表名默认不使用复用形式，比如表名使用 user 而不是 users
-	// 使用 TableName 设置的除外
-	db.SingularTable(true)
 
 	d.db = db
 
@@ -90,16 +93,20 @@ func (d *database) AutoMigrate(values ...interface{}) Database {
 
 // Close ..
 func (d *database) Close() {
-	d.db.Close()
+	sqlDB, _ := d.db.DB()
+	if sqlDB != nil {
+		sqlDB.Close()
+	}
 }
 
-func (d *database) url() (string, error) {
+func (d *database) dsn() (string, error) {
 	c := d.conf
 	s := ""
 
 	switch d.conf.dialect {
 	case "mysql":
-		s = fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8&parseTime=True&loc=Local",
+		// user:pass@tcp(127.0.0.1:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Local
+		s = fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 			c.username, c.password, c.host, c.port, c.dbname)
 	case "postgres":
 		s = fmt.Sprintf("host=%s user=%s dbname=%s sslmode=disable password=%s",
