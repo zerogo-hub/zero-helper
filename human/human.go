@@ -11,6 +11,8 @@ import (
 
 	"github.com/zerogo-hub/zero-helper/random"
 	"github.com/zerogo-hub/zero-helper/time"
+
+	zerobytes "github.com/zerogo-hub/zero-helper/bytes"
 )
 
 var (
@@ -123,7 +125,7 @@ func IDGenerate(year, month, day, sex int, areaCode string, count int) ([]string
 		code17 := fmt.Sprintf("%s%s%d", areaCode, birth, randomCode)
 		checkCode := calcCheckCode(fmt.Sprintf("%s0", code17))
 
-		buf.Write([]byte(code17))
+		buf.Write(zerobytes.StringToBytes(code17))
 		buf.Write([]byte{checkCode})
 		l = append(l, buf.String())
 		buf.Reset()
