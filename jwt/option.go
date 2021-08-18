@@ -11,6 +11,9 @@ type Option struct {
 
 	// Exp 过期时间
 	Exp time.Duration
+
+	// ISS 签发者
+	ISS string
 }
 
 // defaultOption 默认配置

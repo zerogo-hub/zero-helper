@@ -66,6 +66,8 @@ func (jwt *jwt) createToken(key []byte, data ...map[string]interface{}) (string,
 		"iat": time.Now().Unix(),
 		// 过期时间
 		"exp": time.Now().Add(jwt.opt.Exp).Unix(),
+		// 签发者
+		"iss": jwt.opt.ISS,
 	}
 
 	if len(data) > 0 {
