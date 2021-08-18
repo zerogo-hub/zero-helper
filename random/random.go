@@ -5,25 +5,39 @@ import (
 	cr "crypto/rand"
 	"encoding/binary"
 	"math/rand"
-	"strconv"
 	"sync"
 	"time"
 )
 
-// String 获取指定长度的字符串
+var (
+	allLetters   = []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+	lowerLetters = []byte("abcdefghijklmnopqrstuvwxyz")
+	upperLetters = []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+)
+
+// String 获取指定长度的字符串，包括大小写字母和数字
 func String(length int) string {
+	return rs(allLetters, length)
+}
+
+// Lower 获取指定长度的字符串，仅包含小写字母
+func Lower(length int) string {
+	return rs(lowerLetters, length)
+}
+
+// Upper 获取指定长度的字符串，仅包含大写字母
+func Upper(length int) string {
+	return rs(upperLetters, length)
+}
+
+func rs(letters []byte, length int) string {
 	buf := buffer()
 	defer releaseBuffer(buf)
 
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
 	for start := 0; start < length; start++ {
-		t := rand.Intn(3)
-		if t == 0 {
-			buf.WriteString(strconv.Itoa(rand.Intn(10)))
-		} else if t == 1 {
-			buf.WriteString(strconv.Itoa(rand.Intn(26) + 65))
-		} else {
-			buf.WriteString(strconv.Itoa(rand.Intn(26) + 97))
-		}
+		buf.WriteByte(letters[r.Intn(len(letters))])
 	}
 
 	return buf.String()
