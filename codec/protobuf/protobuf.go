@@ -3,8 +3,8 @@ package protobuf
 import (
 	"errors"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/zerogo-hub/zero-helper/codec"
+	zerocodec "github.com/zerogo-hub/zero-helper/codec"
+	"google.golang.org/protobuf/proto"
 )
 
 var (
@@ -15,7 +15,7 @@ var (
 type protobufCodec struct{}
 
 // NewProtobufCodec 创建默认的编码与解码器
-func NewProtobufCodec() codec.Codec {
+func NewProtobufCodec() zerocodec.Codec {
 	return &protobufCodec{}
 }
 

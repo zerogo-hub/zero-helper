@@ -14,7 +14,7 @@ import (
 	"github.com/rifflock/lfshook"
 	"github.com/sirupsen/logrus"
 
-	"github.com/zerogo-hub/zero-helper/file"
+	zerofile "github.com/zerogo-hub/zero-helper/file"
 )
 
 type logrusLog struct {
@@ -38,7 +38,7 @@ func NewLogrusLogger(logName, logPath string, caller, json bool, maxAge, rotatio
 	basePath := path.Join(logPath, logName)
 
 	// 文件夹不存在, 则自动创建
-	if !file.IsDir(logPath) {
+	if !zerofile.IsDir(logPath) {
 		if err := os.MkdirAll(logPath, os.ModePerm); err != nil {
 			return nil, err
 		}

@@ -11,8 +11,8 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/zerogo-hub/zero-helper/logger"
-	"github.com/zerogo-hub/zero-helper/time"
+	zerologger "github.com/zerogo-hub/zero-helper/logger"
+	zerotime "github.com/zerogo-hub/zero-helper/time"
 )
 
 // Server 用来替代 http.Server
@@ -63,7 +63,7 @@ type server struct {
 	shutdownTimeout int
 
 	// log 日志
-	logger logger.Logger
+	logger zerologger.Logger
 }
 
 var (
@@ -74,7 +74,7 @@ var (
 )
 
 // NewServer 生成服务器，用来替代 http.Server
-func NewServer(handler http.Handler, logger logger.Logger) Server {
+func NewServer(handler http.Handler, logger zerologger.Logger) Server {
 	return &server{
 		httpServer:      &http.Server{Handler: handler},
 		shutdownTimeout: defaultShutdownTimeout,
@@ -167,7 +167,7 @@ func (s *server) Shutdown() {
 	timeout := s.shutdownTimeout
 
 	if timeout > 0 {
-		ctx, cancel := context.WithTimeout(context.TODO(), time.Second(timeout))
+		ctx, cancel := context.WithTimeout(context.TODO(), zerotime.Second(timeout))
 		defer cancel()
 
 		err := s.httpServer.Shutdown(ctx)
@@ -177,10 +177,8 @@ func (s *server) Shutdown() {
 			logger.Info("server shutdown")
 		}
 
-		select {
-		case <-ctx.Done():
-			logger.Infof("server timeout of %d seconds", timeout)
-		}
+		<-ctx.Done()
+		logger.Infof("server timeout of %d seconds", timeout)
 	} else {
 		ctx := context.TODO()
 		err := s.httpServer.Shutdown(ctx)
@@ -272,7 +270,7 @@ func (s *server) ListenSignal() {
 }
 
 func (s *server) waitSignal() {
-	ch := make(chan os.Signal)
+	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM, syscall.SIGUSR2)
 	sig := <-ch
 	signal.Stop(ch)

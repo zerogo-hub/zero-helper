@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/zerogo-hub/zero-helper/logger"
+	zerologger "github.com/zerogo-hub/zero-helper/logger"
 )
 
 func main() {
-	log := logger.NewSampleLogger()
+	log := zerologger.NewSampleLogger()
 
 	log.Debug("Debug log")
 	log.Info("Info log")

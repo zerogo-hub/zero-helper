@@ -5,14 +5,14 @@ import (
 	"net/http"
 	"os"
 
-	graceful "github.com/zerogo-hub/zero-helper/graceful/http"
-	"github.com/zerogo-hub/zero-helper/logger"
+	zerograceful "github.com/zerogo-hub/zero-helper/graceful/http"
+	zerologger "github.com/zerogo-hub/zero-helper/logger"
 )
 
 // defaultServer 一个简单的 http 服务器
 type defaultServer struct {
 	// 使用 graceful.Server 替代 httpServer
-	server graceful.Server
+	server zerograceful.Server
 }
 
 // ServeHTTP 实现 http.Handler 接口
@@ -26,9 +26,9 @@ func (ds *defaultServer) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 func main() {
 	ds := new(defaultServer)
-	logger := logger.NewSampleLogger()
+	logger := zerologger.NewSampleLogger()
 
-	ds.server = graceful.NewServer(ds, logger)
+	ds.server = zerograceful.NewServer(ds, logger)
 
 	addr := "127.0.0.1:8877"
 	logger.Infof("listen on: http://%s, pid: %d", addr, os.Getpid())

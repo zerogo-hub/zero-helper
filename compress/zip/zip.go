@@ -5,7 +5,7 @@ import (
 	czip "compress/zlib"
 	"io/ioutil"
 
-	"github.com/zerogo-hub/zero-helper/compress"
+	zerocompress "github.com/zerogo-hub/zero-helper/compress"
 )
 
 type zip struct {
@@ -13,7 +13,7 @@ type zip struct {
 }
 
 // NewZip ..
-func NewZip(level ...int) compress.Compress {
+func NewZip(level ...int) zerocompress.Compress {
 	l := czip.DefaultCompression
 	if len(level) > 0 {
 		l = level[0]

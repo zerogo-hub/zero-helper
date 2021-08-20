@@ -43,9 +43,7 @@ func Send(from, to, subject, html string) error {
 	m := gomail.NewMessage()
 
 	toers := []string{}
-	for _, address := range strings.Split(to, ",") {
-		toers = append(toers, address)
-	}
+	toers = append(toers, strings.Split(to, ",")...)
 
 	m.SetHeader("From", from)
 	m.SetHeader("To", toers...)

@@ -11,7 +11,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/zerogo-hub/zero-helper/time"
+	zerotime "github.com/zerogo-hub/zero-helper/time"
 )
 
 var (
@@ -193,7 +193,7 @@ func (snowflake *Snowflake) wait() int64 {
 	t := snowflakeNow()
 
 	for t <= snowflake.lastTimestamp {
-		time.SleepMircosecond(100)
+		zerotime.SleepMircosecond(100)
 		t = snowflakeNow()
 	}
 
@@ -202,9 +202,9 @@ func (snowflake *Snowflake) wait() int64 {
 
 func snowflakeNow() int64 {
 	if !testSnowflakeTimebackward {
-		return time.MS()
+		return zerotime.MS()
 	}
-	return time.MS() - 10000000
+	return zerotime.MS() - 10000000
 }
 
 // SetSnowflakeTestTimebackward 测试时间回退

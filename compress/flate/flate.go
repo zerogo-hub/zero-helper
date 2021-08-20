@@ -5,7 +5,7 @@ import (
 	cflate "compress/flate"
 	"io/ioutil"
 
-	"github.com/zerogo-hub/zero-helper/compress"
+	zerocompress "github.com/zerogo-hub/zero-helper/compress"
 )
 
 type flate struct {
@@ -13,7 +13,7 @@ type flate struct {
 }
 
 // NewFlate ..
-func NewFlate(level ...int) compress.Compress {
+func NewFlate(level ...int) zerocompress.Compress {
 	l := cflate.DefaultCompression
 	if len(level) > 0 {
 		l = level[0]

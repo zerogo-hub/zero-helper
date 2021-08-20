@@ -3,11 +3,11 @@ package config_test
 import (
 	"testing"
 
-	"github.com/zerogo-hub/zero-helper/config"
+	zeroconfig "github.com/zerogo-hub/zero-helper/config"
 )
 
 func TestConfigJSON(t *testing.T) {
-	c := config.NewConfig()
+	c := zeroconfig.NewConfig()
 	err := c.FileJSON("./json_test.json")
 	if err != nil {
 		t.Errorf("TestConfigJSON failed, err: %s", err.Error())
@@ -33,7 +33,7 @@ func TestConfigJSON(t *testing.T) {
 }
 
 func TestConfigTOML(t *testing.T) {
-	c := config.NewConfig()
+	c := zeroconfig.NewConfig()
 	err := c.FileTOML("./toml_test.toml")
 	if err != nil {
 		t.Errorf("TestConfigTOML failed, err: %s", err.Error())
@@ -66,7 +66,7 @@ func TestConfigTOML(t *testing.T) {
 }
 
 func TestConfigYAML(t *testing.T) {
-	c := config.NewConfig()
+	c := zeroconfig.NewConfig()
 	err := c.FileYAML("./yaml_test.yaml")
 	if err != nil {
 		t.Errorf("TestConfigYAML failed, err: %s", err.Error())

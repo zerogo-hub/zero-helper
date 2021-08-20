@@ -3,15 +3,15 @@ package jwt_test
 import (
 	"testing"
 
-	"github.com/zerogo-hub/zero-helper/jwt"
-	"github.com/zerogo-hub/zero-helper/time"
+	zerojwt "github.com/zerogo-hub/zero-helper/jwt"
+	zerotime "github.com/zerogo-hub/zero-helper/time"
 )
 
 func TestToken(t *testing.T) {
 
-	j := jwt.NewJWT(jwt.Option{
+	j := zerojwt.NewJWT(zerojwt.Option{
 		Secret: []byte("12345"),
-		Exp:    time.Minute(5),
+		Exp:    zerotime.Minute(5),
 	})
 
 	token, err := j.Token()

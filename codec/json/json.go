@@ -3,13 +3,13 @@ package json
 import (
 	"encoding/json"
 
-	"github.com/zerogo-hub/zero-helper/codec"
+	zerocodec "github.com/zerogo-hub/zero-helper/codec"
 )
 
 type jsonCodec struct{}
 
 // NewJSONCodec JSON
-func NewJSONCodec() codec.Codec {
+func NewJSONCodec() zerocodec.Codec {
 	return &jsonCodec{}
 }
 

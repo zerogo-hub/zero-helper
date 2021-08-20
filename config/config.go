@@ -120,7 +120,7 @@ func NewConfig() Config {
 // LoadJSON 从 bytes 数据中读取 JSON 配置
 func (c *config) LoadJSON(bytes []byte) error {
 	if bytes == nil {
-		return errors.New("Bytes cannot be empty")
+		return errors.New("bytes cannot be empty")
 	}
 
 	err := json.Unmarshal(bytes, &c.data)
@@ -135,7 +135,7 @@ func (c *config) LoadJSON(bytes []byte) error {
 // LoadTOML 从 bytes 数据中读取 TOML 配置
 func (c *config) LoadTOML(bytes []byte) error {
 	if bytes == nil {
-		return errors.New("Bytes cannot be empty")
+		return errors.New("bytes cannot be empty")
 	}
 
 	// m := map[string]interface{}{}
@@ -150,7 +150,7 @@ func (c *config) LoadTOML(bytes []byte) error {
 // LoadYAML 从 bytes 数据中读取 YAML 配置
 func (c *config) LoadYAML(bytes []byte) error {
 	if bytes == nil {
-		return errors.New("Bytes cannot be empty")
+		return errors.New("bytes cannot be empty")
 	}
 
 	err := yaml.Unmarshal(bytes, &c.data)
@@ -207,7 +207,7 @@ func (c *config) Any(key string) (interface{}, error) {
 	if value, exist := c.data[key]; exist {
 		return value, nil
 	}
-	return nil, errors.New("Configuration does not exist")
+	return nil, errors.New("configuration does not exist")
 }
 
 // C 获取配置

@@ -15,7 +15,7 @@ type Database interface {
 	config() *config
 	Open() error
 	DB() *gorm.DB
-	AutoMigrate(values ...interface{}) Database
+	AutoMigrate(values ...interface{}) (Database, error)
 	Close()
 }
 
@@ -86,9 +86,11 @@ func (d *database) DB() *gorm.DB {
 }
 
 // AutoMigrate 迁移
-func (d *database) AutoMigrate(values ...interface{}) Database {
-	d.db.AutoMigrate(values...)
-	return d
+func (d *database) AutoMigrate(values ...interface{}) (Database, error) {
+	if err := d.db.AutoMigrate(values...); err != nil {
+		return nil, err
+	}
+	return d, nil
 }
 
 // Close ..

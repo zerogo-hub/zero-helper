@@ -3,7 +3,7 @@ package regexp_test
 import (
 	"testing"
 
-	"github.com/zerogo-hub/zero-helper/regexp"
+	zeroregexp "github.com/zerogo-hub/zero-helper/regexp"
 )
 
 type RegexpExpect struct {
@@ -24,7 +24,7 @@ func TestChinesePhone(t *testing.T) {
 	}
 
 	for _, expect := range expects {
-		if regexp.IsChinesePhone(expect.Context) != expect.Result {
+		if zeroregexp.IsChinesePhone(expect.Context) != expect.Result {
 			t.Errorf("%s result: %t", expect.Context, expect.Result)
 		}
 	}
@@ -41,7 +41,7 @@ func TestNickName(t *testing.T) {
 		"0007",
 	}
 	for _, name := range names {
-		if !regexp.IsNickName(name) {
+		if !zeroregexp.IsNickName(name) {
 			t.Errorf("name: %s is the correct nick name", name)
 		}
 	}
@@ -64,7 +64,7 @@ func TestAccount(t *testing.T) {
 	}
 
 	for _, expect := range expects {
-		if regexp.IsAccount(expect.Context) != expect.Result {
+		if zeroregexp.IsAccount(expect.Context) != expect.Result {
 			t.Errorf("%s result: %t", expect.Context, expect.Result)
 		}
 	}
@@ -95,7 +95,7 @@ func TestEmail(t *testing.T) {
 	}
 
 	for _, expect := range expects {
-		if regexp.IsEmail(expect.Context) != expect.Result {
+		if zeroregexp.IsEmail(expect.Context) != expect.Result {
 			t.Errorf("%s result: %t", expect.Context, expect.Result)
 		}
 	}

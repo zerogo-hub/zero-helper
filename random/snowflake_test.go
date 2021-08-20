@@ -5,8 +5,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/zerogo-hub/zero-helper/random"
-	"github.com/zerogo-hub/zero-helper/time"
+	zerorandom "github.com/zerogo-hub/zero-helper/random"
+	zerotime "github.com/zerogo-hub/zero-helper/time"
 )
 
 func TestSnowflake(t *testing.T) {
@@ -26,7 +26,7 @@ func TestSnowflake(t *testing.T) {
 		go func(workderID int) {
 			defer wg.Done()
 
-			snowflake, _ := random.NewSnowflake(workderID)
+			snowflake, _ := zerorandom.NewSnowflake(workderID)
 
 			for j := 0; j < uuidNum; j++ {
 				uuid, _ := snowflake.UUID()
@@ -52,8 +52,8 @@ func TestSnowflake(t *testing.T) {
 }
 
 func TestSnowflakeBy(t *testing.T) {
-	originTime := time.MS()
-	snowflake, _ := random.NewSnowflakeBy(1, originTime, 10, 2, nil, nil)
+	originTime := zerotime.MS()
+	snowflake, _ := zerorandom.NewSnowflakeBy(1, originTime, 10, 2, nil, nil)
 	uuid, _ := snowflake.UnsafeUUID()
 	t.Log(uuid)
 }
@@ -78,7 +78,7 @@ func TestSnowflakeTimeback(t *testing.T) {
 	}
 
 	workerID, _ := nextWorkerIDFunc()
-	snowflake, _ := random.NewSnowflake(workerID)
+	snowflake, _ := zerorandom.NewSnowflake(workerID)
 	snowflake.SetWorkIDFunc(nextWorkerIDFunc, backWorkerIDFunc)
 
 	// 正常情况
@@ -86,7 +86,7 @@ func TestSnowflakeTimeback(t *testing.T) {
 	t.Logf("v1: %d", v1)
 
 	// 时间回退
-	random.SetSnowflakeTestTimebackward(true)
+	zerorandom.SetSnowflakeTestTimebackward(true)
 	v2, _ := snowflake.UUID()
 	t.Logf("v2: %d", v2)
 }

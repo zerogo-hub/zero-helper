@@ -3,12 +3,12 @@ package flate_test
 import (
 	"testing"
 
-	"github.com/zerogo-hub/zero-helper/compress/flate"
+	zeroflate "github.com/zerogo-hub/zero-helper/compress/flate"
 )
 
 func TestFlate(t *testing.T) {
 	s := "test flate"
-	c := flate.NewFlate()
+	c := zeroflate.NewFlate()
 
 	compressed, err := c.Compress([]byte(s))
 	if err != nil {

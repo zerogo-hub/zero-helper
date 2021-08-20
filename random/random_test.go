@@ -3,13 +3,13 @@ package random_test
 import (
 	"testing"
 
-	"github.com/zerogo-hub/zero-helper/random"
+	zerorandom "github.com/zerogo-hub/zero-helper/random"
 )
 
 func TestRandom(t *testing.T) {
 	size := 10
-	r1 := random.String(size)
-	r2 := random.String(size)
+	r1 := zerorandom.String(size)
+	r2 := zerorandom.String(size)
 
 	t.Logf("r1: %s", r1)
 	t.Logf("r2: %s", r2)

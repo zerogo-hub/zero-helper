@@ -3,7 +3,7 @@ package gracefulhttp
 import (
 	"net"
 
-	"github.com/zerogo-hub/zero-helper/time"
+	zerotime "github.com/zerogo-hub/zero-helper/time"
 )
 
 type tcpKeepAliveListener struct {
@@ -20,7 +20,7 @@ func (ln tcpKeepAliveListener) Accept() (net.Conn, error) {
 		return nil, err
 	}
 
-	if err = tc.SetKeepAlivePeriod(time.Minute(3)); err != nil {
+	if err = tc.SetKeepAlivePeriod(zerotime.Minute(3)); err != nil {
 		return nil, err
 	}
 

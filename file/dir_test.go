@@ -3,11 +3,11 @@ package file_test
 import (
 	"testing"
 
-	"github.com/zerogo-hub/zero-helper/file"
+	zerofile "github.com/zerogo-hub/zero-helper/file"
 )
 
 func TestListDirs(t *testing.T) {
-	dirs, err := file.ListDirs("../")
+	dirs, err := zerofile.ListDirs("../")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -16,11 +16,11 @@ func TestListDirs(t *testing.T) {
 }
 
 func TestDirContains(t *testing.T) {
-	if !file.DirContains("..", ".git") {
+	if !zerofile.DirContains("..", ".git") {
 		t.Fatal("contains .git")
 	}
 
-	if file.DirContains("..", ".unknwon") {
+	if zerofile.DirContains("..", ".unknwon") {
 		t.Fatal("unknon exist")
 	}
 }

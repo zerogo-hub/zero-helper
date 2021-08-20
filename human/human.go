@@ -9,8 +9,8 @@ import (
 	"strconv"
 	_time "time"
 
-	"github.com/zerogo-hub/zero-helper/random"
-	"github.com/zerogo-hub/zero-helper/time"
+	zerorandom "github.com/zerogo-hub/zero-helper/random"
+	zerotime "github.com/zerogo-hub/zero-helper/time"
 
 	zerobytes "github.com/zerogo-hub/zero-helper/bytes"
 )
@@ -115,7 +115,7 @@ func IDGenerate(year, month, day, sex int, areaCode string, count int) ([]string
 
 	for i := 0; i < count; i++ {
 		// 三位数随机码，奇数分配给男性，偶数分配给女性
-		randomCode := random.Int(100, 998)
+		randomCode := zerorandom.Int(100, 998)
 		if sex == 0 && randomCode%2 != 0 {
 			randomCode++
 		} else if sex == 1 && randomCode%2 == 0 {
@@ -177,7 +177,7 @@ func (idCard *IDCard) parse() error {
 	if err != nil {
 		return err
 	}
-	now := time.Date(time.YMD3)
+	now := zerotime.Date(zerotime.YMD3)
 	ibirth, _ := strconv.ParseInt(birth, 10, 32)
 	inow, _ := strconv.ParseInt(now, 10, 32)
 

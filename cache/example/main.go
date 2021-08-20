@@ -3,8 +3,8 @@ package main
 import (
 	"errors"
 
-	"github.com/zerogo-hub/zero-helper/cache"
-	"github.com/zerogo-hub/zero-helper/logger"
+	zerocache "github.com/zerogo-hub/zero-helper/cache"
+	zerologger "github.com/zerogo-hub/zero-helper/logger"
 )
 
 var (
@@ -16,14 +16,14 @@ var (
 	RedisPassword = "uio876..."
 )
 
-var log = logger.NewSampleLogger()
+var log = zerologger.NewSampleLogger()
 
 func main() {
 
-	c := cache.NewCache(
-		cache.WithHost(RedisHost),
-		cache.WithPort(RedisPort),
-		cache.WithPassword(RedisPassword),
+	c := zerocache.NewCache(
+		zerocache.WithHost(RedisHost),
+		zerocache.WithPort(RedisPort),
+		zerocache.WithPassword(RedisPassword),
 	)
 
 	err := c.Open()
@@ -60,13 +60,16 @@ func main() {
 	log.Info("test cache success")
 }
 
-func testString(c cache.Cache) error {
+func testString(c zerocache.Cache) error {
 	const (
 		key   = "hello"
 		value = "world"
 	)
 
-	c.Set(key, value)
+	if err := c.Set(key, value); err != nil {
+		return err
+	}
+
 	ttl, err := c.TTL(key)
 	if err != nil {
 		return err
@@ -83,7 +86,10 @@ func testString(c cache.Cache) error {
 		return errors.New("testString error 2")
 	}
 
-	c.SetEx(key, value, "10")
+	if err := c.SetEx(key, value, "10"); err != nil {
+		return err
+	}
+
 	ttl, err = c.TTL(key)
 	if err != nil {
 		return err
@@ -92,7 +98,10 @@ func testString(c cache.Cache) error {
 		return errors.New("error 3")
 	}
 
-	c.PSetEx(key, value, "10000")
+	if err := c.PSetEx(key, value, "10000"); err != nil {
+		return err
+	}
+
 	ttl, err = c.PTTL(key)
 	if err != nil {
 		return err
@@ -101,7 +110,10 @@ func testString(c cache.Cache) error {
 		return errors.New("error 4")
 	}
 
-	c.MSet("key-1", "value-1", "key-2", "value-2")
+	if err := c.MSet("key-1", "value-1", "key-2", "value-2"); err != nil {
+		return err
+	}
+
 	vs, err := c.MGet("key-1", "key-2", "key-3")
 	if err != nil {
 		return err
@@ -110,7 +122,10 @@ func testString(c cache.Cache) error {
 		return errors.New("testString error 5")
 	}
 
-	c.Set(key, value)
+	if err := c.Set(key, value); err != nil {
+		return err
+	}
+
 	n, err := c.Strlen(key)
 	if err != nil {
 		return err
@@ -127,7 +142,10 @@ func testString(c cache.Cache) error {
 		return errors.New("testString error 7")
 	}
 
-	c.Set(key, value)
+	if err := c.Set(key, value); err != nil {
+		return err
+	}
+
 	newValue := "gogogo"
 	v, err = c.GetSet(key, newValue)
 	if err != nil {
@@ -149,7 +167,10 @@ func testString(c cache.Cache) error {
 		nValue = "3"
 	)
 
-	c.Set(nKey, nValue)
+	if err := c.Set(nKey, nValue); err != nil {
+		return err
+	}
+
 	n64, err := c.Incr(nKey)
 	if err != nil {
 		return err
@@ -165,7 +186,10 @@ func testString(c cache.Cache) error {
 		return errors.New("testString error 11")
 	}
 
-	c.Set(key, value)
+	if err := c.Set(key, value); err != nil {
+		return err
+	}
+
 	exist, err := c.Exists(key)
 	if err != nil {
 		return err
@@ -190,20 +214,28 @@ func testString(c cache.Cache) error {
 		return errors.New("testString error 14")
 	}
 
-	c.DO("FLUSHDB")
+	if _, err := c.DO("FLUSHDB"); err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func testHash(c cache.Cache) error {
+func testHash(c zerocache.Cache) error {
 	var (
 		key                    = "hello"
 		field1, field2, field3 = "field1", "field2", "field3"
 		value1, value2, value3 = "value1", "value2", "value3"
 	)
 
-	c.HMSet(key, field1, value1, field2, value2)
-	c.HSet(key, field3, value3)
+	if err := c.HMSet(key, field1, value1, field2, value2); err != nil {
+		return err
+	}
+
+	if err := c.HSet(key, field3, value3); err != nil {
+		return err
+	}
+
 	n, err := c.HLen(key)
 	if err != nil {
 		return err
@@ -237,12 +269,14 @@ func testHash(c cache.Cache) error {
 		return errors.New("testHash error 4")
 	}
 
-	c.DO("FLUSHDB")
+	if _, err := c.DO("FLUSHDB"); err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func testList(c cache.Cache) error {
+func testList(c zerocache.Cache) error {
 	var (
 		key            = "key"
 		value1, value2 = "value1", "value2"
@@ -272,11 +306,13 @@ func testList(c cache.Cache) error {
 		return errors.New("testList error 5")
 	}
 
-	c.DO("FLUSHDB")
+	if _, err := c.DO("FLUSHDB"); err != nil {
+		return err
+	}
 	return nil
 }
 
-func testSet(c cache.Cache) error {
+func testSet(c zerocache.Cache) error {
 	var (
 		key        = "key"
 		m1, m2, m3 = "m1", "m2", "m3"
@@ -297,11 +333,14 @@ func testSet(c cache.Cache) error {
 		return errors.New("testSet error 3")
 	}
 
-	c.DO("FLUSHDB")
+	if _, err := c.DO("FLUSHDB"); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func testSortedSet(c cache.Cache) error {
+func testSortedSet(c zerocache.Cache) error {
 	var (
 		key = "key"
 	)

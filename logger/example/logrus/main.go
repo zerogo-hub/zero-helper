@@ -1,12 +1,12 @@
 package main
 
 import (
-	"github.com/zerogo-hub/zero-helper/logger"
-	"github.com/zerogo-hub/zero-helper/time"
+	zerologger "github.com/zerogo-hub/zero-helper/logger"
+	zerotime "github.com/zerogo-hub/zero-helper/time"
 )
 
 func main() {
-	log, err := logger.NewLogrusLogger("testlog", "./log", true, true, time.Hour(7*24), time.Hour(1))
+	log, err := zerologger.NewLogrusLogger("testlog", "./log", true, true, zerotime.Hour(7*24), zerotime.Hour(1))
 	if err != nil {
 		panic(err)
 	}

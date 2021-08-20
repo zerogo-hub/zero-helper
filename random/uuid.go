@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/zerogo-hub/zero-helper/os"
+	zeroos "github.com/zerogo-hub/zero-helper/os"
 )
 
 var (
@@ -43,7 +43,7 @@ func NewUUID() string {
 }
 
 func init() {
-	machineID = os.MachineID()
-	processID = os.ProcessID()
+	machineID = zeroos.MachineID()
+	processID = zeroos.ProcessID()
 	counter = Uint32()
 }

@@ -3,12 +3,12 @@ package gzip_test
 import (
 	"testing"
 
-	"github.com/zerogo-hub/zero-helper/compress/gzip"
+	zerogzip "github.com/zerogo-hub/zero-helper/compress/gzip"
 )
 
 func TestGZip(t *testing.T) {
 	s := "test gzip"
-	c := gzip.NewGZip()
+	c := zerogzip.NewGZip()
 
 	compressed, err := c.Compress([]byte(s))
 	if err != nil {

@@ -15,7 +15,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/zerogo-hub/zero-helper/random"
+	zerorandom "github.com/zerogo-hub/zero-helper/random"
 )
 
 // IsDir 判断路径是否是文件夹
@@ -96,7 +96,7 @@ func NameRand(path string, randomNameLen int, sep ...string) string {
 
 	buf := &bytes.Buffer{}
 	name := BaseName(path)
-	rand := random.String(randomNameLen)
+	rand := zerorandom.String(randomNameLen)
 	ext := ExtensionName(path)
 
 	buf.WriteString(name)

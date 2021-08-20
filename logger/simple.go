@@ -13,7 +13,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/zerogo-hub/zero-helper/time"
+	zerotime "github.com/zerogo-hub/zero-helper/time"
 )
 
 // eg:
@@ -238,7 +238,7 @@ func runtimeMessage(level int) string {
 	defer ReleaseBuffer(buff)
 
 	buff.WriteString("[")
-	buff.WriteString(time.Date(time.YMDHMSM))
+	buff.WriteString(zerotime.Date(zerotime.YMDHMSM))
 	buff.WriteString("][")
 	buff.WriteString(strconv.FormatInt(int64(pid), 10))
 	buff.WriteString("][")

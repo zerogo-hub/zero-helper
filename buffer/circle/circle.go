@@ -90,7 +90,7 @@ func (c *Circle) Free() int {
 //
 // 只有全部写入，或者都不写入两种情况，不存在只写入一部分的情形
 func (c *Circle) Write(p []byte) (int, error) {
-	if p == nil || len(p) == 0 {
+	if len(p) == 0 {
 		return 0, nil
 	}
 
@@ -191,7 +191,7 @@ func (c *Circle) Get(n int) ([]byte, error) {
 // p: 数据会拷贝到 p 中
 // n: 读取到 P 中的数据长度
 func (c *Circle) Read(p []byte) (int, error) {
-	if p == nil || len(p) == 0 {
+	if len(p) == 0 {
 		return 0, ErrInvalidBuffer
 	}
 
