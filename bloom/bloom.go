@@ -29,7 +29,7 @@ type Bloom interface {
 	// Cap 容量
 	Cap() uint
 
-	// K 已使用的数量
+	// K 要达到效果，需要使用多少次的 Hash
 	K() uint
 }
 
