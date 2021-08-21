@@ -22,6 +22,15 @@ type Bloom interface {
 	// true: 可能存在，有误差
 	// false: 一定不存在
 	ContainsString(s string) bool
+
+	// ClearAll 移除所有元素
+	ClearAll()
+
+	// Cap 容量
+	Cap() uint
+
+	// K 已使用的数量
+	K() uint
 }
 
 type bloom struct {
@@ -39,26 +48,30 @@ func New(n uint, fp float64) Bloom {
 	}
 }
 
-// Add 添加元素
 func (b *bloom) Add(bytes []byte) {
 	b.filter.Add(bytes)
 }
 
-// AddString 添加元素
 func (b *bloom) AddString(s string) {
 	b.filter.Add(zerobytes.StringToBytes(s))
 }
 
-// Contains 是否存在
-// true: 可能存在，有误差
-// false: 一定不存在
 func (b *bloom) Contains(bytes []byte) bool {
 	return b.filter.Test(bytes)
 }
 
-// ContainsString 是否存在
-// true: 可能存在，有误差
-// false: 一定不存在
 func (b *bloom) ContainsString(s string) bool {
 	return b.filter.Test(zerobytes.StringToBytes(s))
+}
+
+func (b *bloom) ClearAll() {
+	b.filter.ClearAll()
+}
+
+func (b *bloom) Cap() uint {
+	return b.filter.Cap()
+}
+
+func (b *bloom) K() uint {
+	return b.filter.K()
 }
