@@ -10,9 +10,10 @@ func ToInt8(p []byte) int8 {
 }
 
 // PutInt8 int8 转 []byte
-func PutInt8(n int8, p []byte) {
-	_ = p[0]
-	p[0] = byte(n)
+func PutInt8(n int8) []byte {
+	bytes := make([]byte, 1)
+	bytes[0] = byte(n)
+	return bytes
 }
 
 // ToUint8 转为 uint8
@@ -21,9 +22,10 @@ func ToUint8(p []byte) uint8 {
 }
 
 // PutUint8 uint8 转 []byte
-func PutUint8(n uint8, p []byte) {
-	_ = p[0]
-	p[0] = byte(n)
+func PutUint8(n uint8) []byte {
+	bytes := make([]byte, 1)
+	bytes[0] = byte(n)
+	return bytes
 }
 
 // ToInt16 转 int16
@@ -32,8 +34,10 @@ func ToInt16(p []byte) int16 {
 }
 
 // PutInt16 int16 转 []byte
-func PutInt16(n int16, p []byte) {
-	binary.BigEndian.PutUint16(p, uint16(n))
+func PutInt16(n int16) []byte {
+	bytes := make([]byte, 2)
+	binary.BigEndian.PutUint16(bytes, uint16(n))
+	return bytes
 }
 
 // ToUint16 转 uint16
@@ -42,8 +46,10 @@ func ToUint16(p []byte) uint16 {
 }
 
 // PutUint16 uint16 转 []byte
-func PutUint16(n uint16, p []byte) {
-	binary.BigEndian.PutUint16(p, n)
+func PutUint16(n uint16) []byte {
+	bytes := make([]byte, 2)
+	binary.BigEndian.PutUint16(bytes, n)
+	return bytes
 }
 
 // ToInt32 转 int32
@@ -52,8 +58,10 @@ func ToInt32(p []byte) int32 {
 }
 
 // PutInt32 int32 转 []byte
-func PutInt32(n int32, p []byte) {
-	binary.BigEndian.PutUint32(p, uint32(n))
+func PutInt32(n int32) []byte {
+	bytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(bytes, uint32(n))
+	return bytes
 }
 
 // ToUint32 转 uint32
@@ -62,8 +70,10 @@ func ToUint32(p []byte) uint32 {
 }
 
 // PutUint32 uint32 转 []byte
-func PutUint32(n uint32, p []byte) {
-	binary.BigEndian.PutUint32(p, n)
+func PutUint32(n uint32) []byte {
+	bytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(bytes, n)
+	return bytes
 }
 
 // ToInt64 转 int64
@@ -72,8 +82,10 @@ func ToInt64(p []byte) int64 {
 }
 
 // PutInt64 int64 转 []byte
-func PutInt64(n int64, p []byte) {
-	binary.BigEndian.PutUint64(p, uint64(n))
+func PutInt64(n int64) []byte {
+	bytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(bytes, uint64(n))
+	return bytes
 }
 
 // ToUint64 转 uint64
@@ -82,6 +94,8 @@ func ToUint64(p []byte) uint64 {
 }
 
 // PutUint64 uint64 转 []byte
-func PutUint64(n uint64, p []byte) {
-	binary.BigEndian.PutUint64(p, n)
+func PutUint64(n uint64) []byte {
+	bytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(bytes, n)
+	return bytes
 }
