@@ -59,7 +59,7 @@ type server struct {
 	// tc 用于获取监控套接字文件
 	tc tcpKeepAliveListener
 
-	// shutdownTimeout 退出时的超时时间，单位: 秒
+	// shutdownTimeout 退出时的超时时间，单位: 毫秒
 	shutdownTimeout int
 
 	// log 日志
@@ -68,7 +68,7 @@ type server struct {
 
 var (
 	// defaultShutdownTimeout 默认关闭等待时间
-	defaultShutdownTimeout = 5
+	defaultShutdownTimeout = 5000
 
 	envNewKey = "ZERO_HELPER_GRACEFUL"
 )
@@ -167,7 +167,7 @@ func (s *server) Shutdown() {
 	timeout := s.shutdownTimeout
 
 	if timeout > 0 {
-		ctx, cancel := context.WithTimeout(context.TODO(), zerotime.Second(timeout))
+		ctx, cancel := context.WithTimeout(context.TODO(), zerotime.Millisecond(timeout))
 		defer cancel()
 
 		err := s.httpServer.Shutdown(ctx)
