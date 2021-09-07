@@ -107,3 +107,45 @@ func TestFirstUpper(t *testing.T) {
 		t.Error("FirstUpper empty error")
 	}
 }
+
+func TestSliceToInt8(t *testing.T) {
+	from := []string{"1", "2", "3"}
+	to := []int8{1, 2, 3}
+
+	result, err := zerobytes.SliceStringToInt8(from)
+	if err != nil {
+		t.Errorf("test SliceStringToInt8 failed, err: %s", err.Error())
+		return
+	}
+
+	if len(to) != len(result) {
+		return
+	}
+
+	for i, v := range to {
+		if v != result[i] {
+			t.Errorf("test SliceStringToInt8 failed, i: %d, v: %d, r: %d, err: %s", i, v, result[i], err.Error())
+		}
+	}
+}
+
+func TestSliceToUint8(t *testing.T) {
+	from := []string{"1", "2", "3"}
+	to := []uint8{1, 2, 3}
+
+	result, err := zerobytes.SliceStringToUint8(from)
+	if err != nil {
+		t.Errorf("test SliceStringToInt8 failed, err: %s", err.Error())
+		return
+	}
+
+	if len(to) != len(result) {
+		return
+	}
+
+	for i, v := range to {
+		if v != result[i] {
+			t.Errorf("test SliceStringToInt8 failed, i: %d, v: %d, r: %d, err: %s", i, v, result[i], err.Error())
+		}
+	}
+}
