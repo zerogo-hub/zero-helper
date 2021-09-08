@@ -119,6 +119,7 @@ func TestSliceToInt8(t *testing.T) {
 	}
 
 	if len(to) != len(result) {
+		t.Errorf("test SliceStringToInt8 failed, invalid length")
 		return
 	}
 
@@ -140,12 +141,57 @@ func TestSliceToUint8(t *testing.T) {
 	}
 
 	if len(to) != len(result) {
+		t.Errorf("test TestSliceToUint8 failed, invalid length")
 		return
 	}
 
 	for i, v := range to {
 		if v != result[i] {
 			t.Errorf("test SliceStringToInt8 failed, i: %d, v: %d, r: %d, err: %s", i, v, result[i], err.Error())
+		}
+	}
+}
+
+func TestSliceToInt64(t *testing.T) {
+	from := []string{"80068728175202304"}
+	to := []int64{80068728175202304}
+
+	result, err := zerobytes.SliceStringToInt64(from)
+	if err != nil {
+		t.Errorf("test TestSliceToInt64 failed, err: %s", err.Error())
+		return
+	}
+
+	if len(to) != len(result) {
+		t.Errorf("test TestSliceToInt64 failed, invalid length")
+		return
+	}
+
+	for i, v := range to {
+		if v != result[i] {
+			t.Errorf("test TestSliceToInt64 failed, i: %d, v: %d, r: %d, err: %s", i, v, result[i], err.Error())
+		}
+	}
+}
+
+func TestSliceToUint64(t *testing.T) {
+	from := []string{"80068728175202304"}
+	to := []uint64{80068728175202304}
+
+	result, err := zerobytes.SliceStringToUint64(from)
+	if err != nil {
+		t.Errorf("test TestSliceToUint64 failed, err: %s", err.Error())
+		return
+	}
+
+	if len(to) != len(result) {
+		t.Errorf("test TestSliceToUint64 failed, invalid length")
+		return
+	}
+
+	for i, v := range to {
+		if v != result[i] {
+			t.Errorf("test TestSliceToUint64 failed, i: %d, v: %d, r: %d, err: %s", i, v, result[i], err.Error())
 		}
 	}
 }
