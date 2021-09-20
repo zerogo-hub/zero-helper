@@ -11,18 +11,18 @@ import (
 // WordsCount 字数统计模型
 type WordsCount struct {
 	// Word 不包括标点符号
-	Word int
+	Word int32
 	// Punctuation 标点符号数量
-	Punctuation int
+	Punctuation int32
 }
 
 // Pure 字数，不包括标点符号
-func (wc *WordsCount) Pure() int {
+func (wc *WordsCount) Pure() int32 {
 	return wc.Word
 }
 
 // Total 总字数，包括标点符号
-func (wc *WordsCount) Total() int {
+func (wc *WordsCount) Total() int32 {
 	return wc.Word + wc.Punctuation
 }
 
@@ -51,7 +51,7 @@ func Count(content string) *WordsCount {
 			if len(word) == runeCount {
 				wc.Word++
 			} else {
-				wc.Word += runeCount
+				wc.Word += int32(runeCount)
 			}
 		}
 	}
