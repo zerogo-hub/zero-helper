@@ -9,6 +9,11 @@ func (c *cache) Get(key string) (string, error) {
 	return redis.String(c.DO("GET", key))
 }
 
+// GetBytes 返回 key 所关联的数据
+func (c *cache) GetBytes(key string) ([]byte, error) {
+	return redis.Bytes(key, nil)
+}
+
 // Set 将字符串 value 关联到 key
 func (c *cache) Set(key string, value interface{}) error {
 	_, err := c.DO("SET", key, value)

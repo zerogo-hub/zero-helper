@@ -77,6 +77,7 @@ type Key interface {
 // String 字符串
 type String interface {
 	Get(key string) (string, error)
+	GetBytes(key string) ([]byte, error)
 	Set(key string, value interface{}) error
 	SetEx(key string, value interface{}, seconds string) error
 	PSetEx(key string, value interface{}, milliseconds string) error

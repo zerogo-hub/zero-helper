@@ -70,6 +70,11 @@ func testString(c zerocache.Cache) error {
 		return err
 	}
 
+	bv, _ := c.GetBytes(key)
+	if string(bv) != value {
+		return errors.New("test GetBytes failed")
+	}
+
 	ttl, err := c.TTL(key)
 	if err != nil {
 		return err
