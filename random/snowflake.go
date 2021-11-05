@@ -15,11 +15,11 @@ import (
 )
 
 var (
-	// ErrWorkerID 无效的 workerID，取值范围 [0, defaultMaxWorkerID]
-	ErrWorkerID = errors.New("bad worker id")
+	// ErrSnowflakeWorkerID 无效的 workerID，取值范围 [0, defaultMaxWorkerID]
+	ErrSnowflakeWorkerID = errors.New("bad worker id")
 
-	// ErrTimeBackward 时间倒退，当前时间比上一次记录的时间还要小
-	ErrTimeBackward = errors.New("time backward")
+	// ErrSnowflakeTimeBackward 时间倒退，当前时间比上一次记录的时间还要小
+	ErrSnowflakeTimeBackward = errors.New("time backward")
 )
 
 var (
@@ -31,20 +31,20 @@ const (
 	// 计时起始时间，毫秒，影响 41 bit 的毫秒时间戳有效性，
 	// 2^41-1 = 69 年
 	// 一旦确定不可更改，默认为 2021-01-30 00:00:00.000
-	defaultOriginTime = 1611936000000
+	defaultSnowflakeOriginTime = 1611936000000
 
 	// 节点占用的字节数量，会影响节点数量
-	defaultWorkerIDBits = 10
+	defaultSnowflakeWorkerIDBits = 10
 
 	// 毫秒内自增占用的字节数量，会影响毫秒内自增最大值
-	defaultSequenceBits = 12
+	defaultSnowflakeSequenceBits = 12
 )
 
-// NextWorkIDFunc ..
-type NextWorkIDFunc func() (int, error)
+// SnowflakeNextWorkIDFunc ..
+type SnowflakeNextWorkIDFunc func() (int, error)
 
-// BackWorkIDFunc ..
-type BackWorkIDFunc func(int) error
+// SnowflakeBackWorkIDFunc ..
+type SnowflakeBackWorkIDFunc func(int) error
 
 // Snowflake uuid 生成器
 type Snowflake struct {
@@ -76,24 +76,24 @@ type Snowflake struct {
 	maxSequence int
 
 	// 当发生时间回拨时超过 15 ms，用于获取替换用的 workID，为 nil 时抛出错误
-	nextWorkIDFunc NextWorkIDFunc
+	nextWorkIDFunc SnowflakeNextWorkIDFunc
 
 	// 当发生时间回拨时超过 15 ms，用于归还当前 workID，为 nil 时抛出错误
-	backWorkIDFunc BackWorkIDFunc
+	backWorkIDFunc SnowflakeBackWorkIDFunc
 }
 
 // NewSnowflake 创建生成器
 func NewSnowflake(workerID int) (*Snowflake, error) {
-	return NewSnowflakeBy(workerID, defaultOriginTime, defaultWorkerIDBits, defaultSequenceBits, nil, nil)
+	return NewSnowflakeBy(workerID, defaultSnowflakeOriginTime, defaultSnowflakeWorkerIDBits, defaultSnowflakeSequenceBits, nil, nil)
 }
 
 // NewSnowflakeBy 创建生成器
-func NewSnowflakeBy(workerID int, originTime int64, workerIDBits int, sequenceBits int, nextWorkIDFunc NextWorkIDFunc, backWorkIDFunc BackWorkIDFunc) (*Snowflake, error) {
+func NewSnowflakeBy(workerID int, originTime int64, workerIDBits int, sequenceBits int, nextWorkIDFunc SnowflakeNextWorkIDFunc, backWorkIDFunc SnowflakeBackWorkIDFunc) (*Snowflake, error) {
 	maxWorkerID := -1 ^ (-1 << workerIDBits)
 	maxSequence := -1 ^ (-1 << sequenceBits)
 
 	if workerID < 0 || workerID > maxWorkerID {
-		return nil, ErrWorkerID
+		return nil, ErrSnowflakeWorkerID
 	}
 
 	return &Snowflake{
@@ -114,7 +114,7 @@ func (snowflake *Snowflake) SetOriginTime(originTime int64) {
 }
 
 // SetWorkIDFunc 设置时间回拨超过 15 ms 后，用于处理 workID 的函数
-func (snowflake *Snowflake) SetWorkIDFunc(nextWorkIDFunc NextWorkIDFunc, backWorkIDFunc BackWorkIDFunc) {
+func (snowflake *Snowflake) SetWorkIDFunc(nextWorkIDFunc SnowflakeNextWorkIDFunc, backWorkIDFunc SnowflakeBackWorkIDFunc) {
 	snowflake.nextWorkIDFunc = nextWorkIDFunc
 	snowflake.backWorkIDFunc = backWorkIDFunc
 }
@@ -149,19 +149,19 @@ func (snowflake *Snowflake) generateUUID() (uint64, error) {
 			// 获取一个新的 workID
 			nextWorkID, err := snowflake.nextWorkIDFunc()
 			if err != nil {
-				return 0, ErrTimeBackward
+				return 0, ErrSnowflakeTimeBackward
 			}
 
 			curWorkID := snowflake.workerID
 
 			// 归还当前的 workID，注意避免该 workID 立即被另一个节点获取，一般插到队列的尾部
 			if err := snowflake.backWorkIDFunc(curWorkID); err != nil {
-				return 0, ErrTimeBackward
+				return 0, ErrSnowflakeTimeBackward
 			}
 
 			snowflake.setWorkID(nextWorkID)
 		} else {
-			return 0, ErrTimeBackward
+			return 0, ErrSnowflakeTimeBackward
 		}
 	}
 

@@ -58,6 +58,12 @@ func TestSnowflakeBy(t *testing.T) {
 	t.Log(uuid)
 }
 
+func TestShortSnowflake(t *testing.T) {
+	snowflake, _ := zerorandom.NewBit46Snowflake(1)
+	uuid, _ := snowflake.UnsafeUUID()
+	t.Log(uuid)
+}
+
 // TestSnowflakeTimeback 测试时间回拨
 func TestSnowflakeTimeback(t *testing.T) {
 	workerIDs := []int{1, 2, 3, 4, 5}
