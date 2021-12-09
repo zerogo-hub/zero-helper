@@ -203,3 +203,163 @@ func SliceStringToUint64(from []string) ([]uint64, error) {
 
 	return to, nil
 }
+
+// SliceInt8ToString []int8 转 []string
+func SliceInt8ToString(from []int8) []string {
+	if len(from) == 0 {
+		return nil
+	}
+
+	to := make([]string, 0, len(from))
+
+	for _, i8 := range from {
+		s := strconv.FormatInt(int64(i8), 10)
+		to = append(to, s)
+	}
+
+	return to
+}
+
+// SliceUint8ToString []uint8 转 []string
+func SliceUint8ToString(from []uint8) []string {
+	if len(from) == 0 {
+		return nil
+	}
+
+	to := make([]string, 0, len(from))
+
+	for _, i8 := range from {
+		s := strconv.FormatUint(uint64(i8), 10)
+		to = append(to, s)
+	}
+
+	return to
+}
+
+// SliceInt16ToString []int16 转 []string
+func SliceInt16ToString(from []int16) []string {
+	if len(from) == 0 {
+		return nil
+	}
+
+	to := make([]string, 0, len(from))
+
+	for _, i16 := range from {
+		s := strconv.FormatInt(int64(i16), 10)
+		to = append(to, s)
+	}
+
+	return to
+}
+
+// SliceUint16ToString []uint16 转 []string
+func SliceUint16ToString(from []uint16) []string {
+	if len(from) == 0 {
+		return nil
+	}
+
+	to := make([]string, 0, len(from))
+
+	for _, i16 := range from {
+		s := strconv.FormatUint(uint64(i16), 10)
+		to = append(to, s)
+	}
+
+	return to
+}
+
+// SliceInt32ToString []int32 转 []string
+func SliceInt32ToString(from []int32) []string {
+	if len(from) == 0 {
+		return nil
+	}
+
+	to := make([]string, 0, len(from))
+
+	for _, i32 := range from {
+		s := strconv.FormatInt(int64(i32), 10)
+		to = append(to, s)
+	}
+
+	return to
+}
+
+// SliceUint32ToString []uint32 转 []string
+func SliceUint32ToString(from []uint32) []string {
+	if len(from) == 0 {
+		return nil
+	}
+
+	to := make([]string, 0, len(from))
+
+	for _, i32 := range from {
+		s := strconv.FormatUint(uint64(i32), 10)
+		to = append(to, s)
+	}
+
+	return to
+}
+
+// SliceIntToString []int 转 []string
+func SliceIntToString(from []int) []string {
+	if len(from) == 0 {
+		return nil
+	}
+
+	to := make([]string, 0, len(from))
+
+	for _, i := range from {
+		s := strconv.FormatInt(int64(i), 10)
+		to = append(to, s)
+	}
+
+	return to
+}
+
+// SliceUintToString []uint 转 []string
+func SliceUintToString(from []uint) []string {
+	if len(from) == 0 {
+		return nil
+	}
+
+	to := make([]string, 0, len(from))
+
+	for _, i := range from {
+		s := strconv.FormatUint(uint64(i), 10)
+		to = append(to, s)
+	}
+
+	return to
+}
+
+// SliceInt64ToString []int64 转 []string
+func SliceInt64ToString(from []int64) []string {
+	if len(from) == 0 {
+		return nil
+	}
+
+	to := make([]string, 0, len(from))
+
+	for _, i64 := range from {
+		s := strconv.FormatInt(i64, 10)
+		to = append(to, s)
+	}
+
+	return to
+}
+
+// SliceUint64ToString []uint64 转 []string
+func SliceUint64ToString(from []uint64) []string {
+	if len(from) == 0 {
+		return nil
+	}
+
+	to := make([]string, 0, len(from))
+
+	for _, i64 := range from {
+		s := strconv.FormatUint(i64, 10)
+		to = append(to, s)
+	}
+
+	return to
+}
