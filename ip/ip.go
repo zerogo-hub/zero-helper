@@ -4,7 +4,7 @@ import (
 	"net"
 )
 
-// ToUint32 将 IP 转为 整型
+// ToUint32 将 IPv4 转为 整型
 func ToUint32(s string) uint32 {
 	ip := net.ParseIP(s)
 
