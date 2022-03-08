@@ -6,16 +6,22 @@ import (
 	zeroip "github.com/zerogo-hub/zero-helper/ip"
 )
 
-func TestIPToInt(t *testing.T) {
-	n := zeroip.ToUint32("192.168.1.1")
-	if n != 3232235777 {
-		t.Fatalf("n must be 3232235777, now: %d", n)
+func TestIPV4(t *testing.T) {
+	ipV4 := "192.168.1.1"
+
+	n := zeroip.ToUint64(ipV4)
+	s := zeroip.ToIPString(n)
+	if s != ipV4 {
+		t.Fatalf("s must be %s, now: %s", ipV4, s)
 	}
 }
 
-func TestIPToString(t *testing.T) {
-	s := zeroip.ToString(3232235777)
-	if s != "192.168.1.1" {
-		t.Fatalf("s must be 192.168.1.1, now: %s", s)
+func TestIPV6(t *testing.T) {
+	ipV6 := "2801:0137:0000:0000:0000:ffff:ffff:ffff"
+
+	n := zeroip.ToUint64(ipV6)
+	s := zeroip.ToString(n)
+	if s != ipV6 {
+		t.Fatalf("s must be %s, now: %s", ipV6, s)
 	}
 }
