@@ -229,3 +229,34 @@ func Pass() int64 {
 func Remain() int64 {
 	return Zero(1) - Now()
 }
+
+// TodayID 以今日日期为编号
+//
+// eg: TodayID() => 20220529
+func TodayID() int {
+	now := time.Now()
+
+	year, month, day := now.Date()
+	return year*10000 + (int)(month)*100 + day
+}
+
+// WeekID 已本周周几为编号
+//
+// eg: WeekID() => 7
+func WeekID() int8 {
+	now := time.Now()
+	id := int8(now.Weekday())
+	if id == 0 {
+		return 7
+	}
+	return id
+}
+
+// YearWeekID 以本周是今年的第几周为编号
+//
+// YearWeekID() => 202221
+func YearWeekID() int {
+	now := time.Now()
+	year, week := now.ISOWeek()
+	return year*100 + week
+}
