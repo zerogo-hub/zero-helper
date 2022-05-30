@@ -6,6 +6,7 @@ import (
 	zerobytes "github.com/zerogo-hub/zero-helper/bytes"
 )
 
+// Bloom 布隆过滤器接口
 type Bloom interface {
 	// Add 添加元素
 	Add(bytes []byte)

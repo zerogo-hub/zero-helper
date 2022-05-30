@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// IntToString int 数组转字符串
+// IntToString int 切片转字符串
 //
 // eg: IntToString([]int{1, 2, 3, 4}) 		-> "1,2,3,4"
 //
@@ -22,7 +22,7 @@ func IntToString(i []int, sep ...string) string {
 	return strings.Join(l, s)
 }
 
-// Int64ToString int64 数组转字符串
+// Int64ToString int64 切片转字符串
 //
 // eg: Int64ToString([]int64{1, 2, 3, 4})		-> "1,2,3,4"
 //
@@ -39,7 +39,7 @@ func Int64ToString(i64 []int64, sep ...string) string {
 	return strings.Join(l, s)
 }
 
-// StringToString 字符串数组转字符串
+// StringToString 字符串切片转字符串
 //
 // eg: StringToString(["1","2","3","4"]) 		-> "1,2,3,4"
 //
