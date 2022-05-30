@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	test = 2
+	test = 3
 )
 
 func main() {
@@ -19,6 +19,8 @@ func main() {
 		testTW()
 	} else if test == 2 {
 		testCron()
+	} else if test == 3 {
+		testPool()
 	}
 
 	waitSignal()
@@ -60,6 +62,14 @@ func testCron() {
 	// 每年6月1日 05:00:00 执行
 	tw.AddYearDayCron(6, 1, 5, 0, 0, -1, func(t time.Time) {
 		log.Println("year cron done")
+	})
+}
+
+func testPool() {
+	twp := zerotimer.NewPool(5, time.Second, 10)
+	twp.Start()
+	twp.AddTask(time.Second, -1, func(t time.Time) {
+		log.Println("pool done")
 	})
 }
 

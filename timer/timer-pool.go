@@ -21,9 +21,7 @@ type TimerWheelPool struct {
 
 // NewPool 创建一个时间轮池
 func NewPool(poolsize int, interval time.Duration, slotNum int) *TimerWheelPool {
-	if poolsize <= 0 {
-		poolsize = 1
-	}
+	poolsize = f2(poolsize)
 
 	twp := &TimerWheelPool{
 		twpool:   make([]*TimerWheel, 0, poolsize),
@@ -105,6 +103,6 @@ func (twp *TimerWheelPool) Remove(taskID uint64) {
 }
 
 func (twp *TimerWheelPool) get() *TimerWheel {
-	idx := atomic.AddUint64(&twp.incr, 1) % twp.poolsize
+	idx := atomic.AddUint64(&twp.incr, 1) & (twp.poolsize - 1)
 	return twp.twpool[idx]
 }
