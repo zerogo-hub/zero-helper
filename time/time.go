@@ -237,7 +237,7 @@ func TodayID() int {
 	now := time.Now()
 
 	year, month, day := now.Date()
-	return year*10000 + (int)(month)*100 + day
+	return year*10000 + int(month)*100 + day
 }
 
 // WeekID 已本周周几为编号

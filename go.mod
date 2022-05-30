@@ -9,6 +9,7 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.0.0
 	github.com/gomodule/redigo v1.8.5
 	github.com/lestrrat/go-file-rotatelogs v0.0.0-20180223000712-d3151e2a480f
+	github.com/panjf2000/ants/v2 v2.5.0
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5
 	github.com/sirupsen/logrus v1.8.1
 	google.golang.org/protobuf v1.27.1
