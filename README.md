@@ -14,6 +14,7 @@
 - crypto: 加密与解密
 - database: 封装`mysql`
 - email: 发送邮件
+- entity: `cache-aside`，封装`gorm`和`bigcache`
 - file: 文件相关
 - graceful: 优雅的重启和关闭服务器
 - human: 身份证验证

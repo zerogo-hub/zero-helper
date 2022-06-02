@@ -1,11 +1,13 @@
 module github.com/zerogo-hub/zero-helper
 
-go 1.17
+go 1.18
 
 require (
 	github.com/BurntSushi/toml v0.4.1
+	github.com/allegro/bigcache/v3 v3.0.2
 	github.com/bits-and-blooms/bloom/v3 v3.0.1
 	github.com/go-gomail/gomail v0.0.0-20160411212932-81ebce5c23df
+	github.com/gogo/protobuf v1.3.2
 	github.com/golang-jwt/jwt/v4 v4.0.0
 	github.com/gomodule/redigo v1.8.5
 	github.com/lestrrat/go-file-rotatelogs v0.0.0-20180223000712-d3151e2a480f
