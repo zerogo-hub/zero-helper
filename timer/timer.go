@@ -215,8 +215,6 @@ type TimerWheel struct {
 	slotNum int
 	// slots 所有时间轮槽
 	slots []*slot
-	// tasks Map<taskId, slotId>，用于记录任务在哪个槽中
-	tasks *sync.Map
 	// genTaskID 用于任务 ID
 	genTaskID uint64
 
@@ -239,7 +237,6 @@ func New(interval time.Duration, slotNum int) *TimerWheel {
 		interval: interval,
 		slotNum:  slotNum,
 		slots:    make([]*slot, 0, slotNum),
-		tasks:    &sync.Map{},
 		closeCh:  make(chan bool),
 	}
 
@@ -312,21 +309,6 @@ func (tw *TimerWheel) AddMonthCron(dayOfMonth, hour, minute, second int, times i
 // 示例：每年6月1日早上 5 点执行
 func (tw *TimerWheel) AddYearDayCron(month, dayOfMonth, hour, minute, second int, times int, callback Handler) *Task {
 	return tw.addCron(month, dayOfMonth, -1, hour, minute, second, cronTypeEveryYear, times, callback)
-}
-
-// Remove 删除指定任务
-func (tw *TimerWheel) Remove(taskID uint64) {
-	pos, ok := tw.tasks.LoadAndDelete(taskID)
-	if !ok {
-		return
-	}
-
-	slot := tw.slots[pos.(int)]
-	slot.remove(taskID)
-
-	if tw.twp != nil {
-		tw.twp.tasks.Delete(taskID)
-	}
 }
 
 func (tw *TimerWheel) start() {
@@ -405,19 +387,9 @@ func (tw *TimerWheel) put(task *Task) {
 
 	slot := tw.slots[pos]
 	slot.add(task)
-
-	tw.tasks.Store(task.id, pos)
-	if tw.twp != nil {
-		tw.twp.tasks.Store(task.id, pos)
-	}
 }
 
 func (tw *TimerWheel) afterTaskRun(task *Task) {
-	tw.tasks.Delete(task.id)
-	if tw.twp != nil {
-		tw.twp.tasks.Delete(task.id)
-	}
-
 	if task.times == -1 || task.times > 1 {
 		if task.times > 0 {
 			task.times--

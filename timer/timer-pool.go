@@ -1,7 +1,6 @@
 package timer
 
 import (
-	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -14,9 +13,6 @@ type TimerWheelPool struct {
 	// poolsize 池中时间轮个数，一般设置为 cpu 核心数，runtime.NumCPU()
 	poolsize uint64
 	incr     uint64
-
-	// tasks Map<taskId, twid>，用于记录任务在哪个时间轮中
-	tasks *sync.Map
 }
 
 // NewPool 创建一个时间轮池
@@ -27,7 +23,6 @@ func NewPool(poolsize int, interval time.Duration, slotNum int) *TimerWheelPool 
 		twpool:   make([]*TimerWheel, 0, poolsize),
 		poolsize: uint64(poolsize),
 		incr:     0,
-		tasks:    &sync.Map{},
 	}
 
 	for i := 0; i < poolsize; i++ {
@@ -91,15 +86,6 @@ func (twp *TimerWheelPool) AddMonthCron(dayOfMonth, hour, minute, second int, ti
 // 示例：每年6月1日早上 5 点执行
 func (twp *TimerWheelPool) AddYearDayCron(month, dayOfMonth, hour, minute, second int, times int, callback Handler) *Task {
 	return twp.get().AddYearDayCron(month, dayOfMonth, hour, minute, second, times, callback)
-}
-
-// Remove 删除指定任务
-func (twp *TimerWheelPool) Remove(taskID uint64) {
-	twid, ok := twp.tasks.Load(taskID)
-	if !ok {
-		return
-	}
-	twp.twpool[twid.(uint64)].Remove(taskID)
 }
 
 func (twp *TimerWheelPool) get() *TimerWheel {
