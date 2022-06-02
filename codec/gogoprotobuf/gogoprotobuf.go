@@ -1,11 +1,10 @@
-// Package protobuf 谷歌官方实现
-package protobuf
+package gogoprotobuf
 
 import (
 	"errors"
 
+	"github.com/gogo/protobuf/proto"
 	zerocodec "github.com/zerogo-hub/zero-helper/codec"
-	"google.golang.org/protobuf/proto"
 )
 
 var (
