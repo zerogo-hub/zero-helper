@@ -21,6 +21,10 @@ func TestChinesePhone(t *testing.T) {
 			Context: "13345678901",
 			Result:  true,
 		},
+		{
+			Context: "1334567890",
+			Result:  false,
+		},
 	}
 
 	for _, expect := range expects {
@@ -45,6 +49,10 @@ func TestNickName(t *testing.T) {
 			t.Errorf("name: %s is the correct nick name", name)
 		}
 	}
+
+	if zeroregexp.IsNickName("") {
+		t.Error("test nil failed")
+	}
 }
 
 func TestAccount(t *testing.T) {
@@ -59,6 +67,10 @@ func TestAccount(t *testing.T) {
 		},
 		{
 			Context: "name三",
+			Result:  false,
+		},
+		{
+			Context: "",
 			Result:  false,
 		},
 	}
@@ -90,6 +102,10 @@ func TestEmail(t *testing.T) {
 		},
 		{
 			Context: "abc",
+			Result:  false,
+		},
+		{
+			Context: "",
 			Result:  false,
 		},
 	}

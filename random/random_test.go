@@ -6,6 +6,24 @@ import (
 	zerorandom "github.com/zerogo-hub/zero-helper/random"
 )
 
+func TestLower(t *testing.T) {
+	r := zerorandom.Lower(10)
+	for _, c := range r {
+		if c < 'a' || c > 'z' {
+			t.Errorf("test lower failed, c: %v", c)
+		}
+	}
+}
+
+func TestUpper(t *testing.T) {
+	r := zerorandom.Upper(10)
+	for _, c := range r {
+		if c < 'A' || c > 'Z' {
+			t.Errorf("test upper failed, c: %v", c)
+		}
+	}
+}
+
 func TestRandom(t *testing.T) {
 	size := 10
 	r1 := zerorandom.String(size)
@@ -20,5 +38,25 @@ func TestRandom(t *testing.T) {
 
 	if len(r2) != size {
 		t.Errorf("R2 length: %d is not size: %d", len(r2), size)
+	}
+}
+
+func TestRangeInt(t *testing.T) {
+	min := int64(1)
+	max := int64(10)
+	for i := 0; i < 1000; i++ {
+		result := zerorandom.Int(min, max)
+		if result < min || result > max {
+			t.Errorf("test int failed, result: %d", result)
+		}
+	}
+}
+
+func TestRangeUnt(t *testing.T) {
+	for i := 0; i < 1000; i++ {
+		result := zerorandom.Uint32()
+		if 0 < 0 || result > ^uint32(0) {
+			t.Errorf("test uint failed, result: %d", result)
+		}
 	}
 }

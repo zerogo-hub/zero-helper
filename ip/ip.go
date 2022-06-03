@@ -22,10 +22,10 @@ func ToUint64(s string) *big.Int {
 	return ipV6Int
 }
 
-// ToString 将 uint64 转为 IPV4 或者 IPV6
+// convert 将 uint64 转为 IPV4 或者 IPV6
 // n: 通过 ToUint64 得到的值
 // https://blog.csdn.net/swingLau007/article/details/116170235
-func ToString(ipInt *big.Int) string {
+func convert(ipInt *big.Int) string {
 	b255 := big.NewInt(0).SetBytes([]byte{255})
 	var buf = make([]byte, 2)
 	p := make([]string, 8)
@@ -54,17 +54,15 @@ func ToString(ipInt *big.Int) string {
 	return strings.Join(p, ":")
 }
 
-// ToIPString 根据 IP 类型，输出 x.x.x.x 和 x:x:x:x
-func ToIPString(ipInt *big.Int) string {
-	s := ToString(ipInt)
+// ToString 根据 IP 类型，输出 x.x.x.x 和 x:x:x:x
+func ToString(ipInt *big.Int) string {
+	s := convert(ipInt)
 	ip := net.ParseIP(s)
 
 	for _, c := range s {
 		switch c {
 		case ':':
 			return ip.To16().String()
-		case '.':
-			return ip.To4().String()
 		}
 	}
 

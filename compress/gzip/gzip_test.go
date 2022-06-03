@@ -8,7 +8,8 @@ import (
 
 func TestGZip(t *testing.T) {
 	s := "test gzip"
-	c := zerogzip.NewGZip()
+	c := zerogzip.NewGZip(5)
+	t.Log(c.Name())
 
 	compressed, err := c.Compress([]byte(s))
 	if err != nil {

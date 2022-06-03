@@ -56,12 +56,20 @@ func TestSnowflakeBy(t *testing.T) {
 	snowflake, _ := zerorandom.NewSnowflakeBy(1, originTime, 10, 2, nil, nil)
 	uuid, _ := snowflake.UnsafeUUID()
 	t.Log(uuid)
+
+	if _, err := zerorandom.NewSnowflakeBy(-1, originTime, 10, 2, nil, nil); err == nil {
+		t.Error("test invalid workID failed")
+	}
 }
 
 func TestShortSnowflake(t *testing.T) {
 	snowflake, _ := zerorandom.NewBit46Snowflake(1)
 	uuid, _ := snowflake.UnsafeUUID()
 	t.Log(uuid)
+
+	if _, err := zerorandom.NewBit46Snowflake(-1); err == nil {
+		t.Error("test invalid workID failed")
+	}
 }
 
 // TestSnowflakeTimeback 测试时间回拨

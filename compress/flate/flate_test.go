@@ -8,7 +8,8 @@ import (
 
 func TestFlate(t *testing.T) {
 	s := "test flate"
-	c := zeroflate.NewFlate()
+	c := zeroflate.NewFlate(5)
+	t.Log(c.Name())
 
 	compressed, err := c.Compress([]byte(s))
 	if err != nil {

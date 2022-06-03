@@ -52,4 +52,11 @@ func TestWordsCount(t *testing.T) {
 	if wc8.Total() != 7 || wc8.Pure() != 5 {
 		t.Fatal("wc8 test failed")
 	}
+
+	// 中英文之间自动添加空格
+	// 你好abc -> 你好 abc
+	wc9 := zerowords.Count("你好abc")
+	if wc9.Total() != 3 || wc9.Pure() != 3 {
+		t.Fatal("wc9 test failed")
+	}
 }
