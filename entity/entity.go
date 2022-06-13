@@ -3,7 +3,10 @@ package entity
 import (
 	"bytes"
 	"errors"
+	"strconv"
 	"time"
+
+	"golang.org/x/sync/singleflight"
 
 	zerocodec "github.com/zerogo-hub/zero-helper/codec"
 	zerologger "github.com/zerogo-hub/zero-helper/logger"
@@ -15,10 +18,14 @@ var (
 	ErrNotFound = errors.New("data not found")
 	// ErrEmptyPlaceholder 数据为空
 	ErrEmptyPlaceholder = errors.New("empty placeholder")
+	// ErrTimeout 超时
+	ErrTimeout = errors.New("timeout")
 )
 
 var (
 	emptyPlaceholder = []byte("*")
+
+	g singleflight.Group
 )
 
 // QueryHandler 查询函数
@@ -37,6 +44,9 @@ type EntityManager interface {
 
 	// Delete 删除
 	Delete(id uint64, model interface{}) error
+
+	// SetTimeout 设置超时时间
+	SetTimeout(timeout time.Duration)
 }
 
 // WrapDB 封装数据库
@@ -64,17 +74,22 @@ type entityManager struct {
 
 	// twp 时间轮，定时器
 	twp zerotimer.TimerWheelPool
+
+	// timeout 给 singleflight 设置一个超时时间
+	// 如果大量相同并发请求阻塞时间过长，非常致命
+	timeout time.Duration
 }
 
 // NewManager 创建一个实体管理器
 func NewManager(db WrapDB, cache WrapCache, st *Stat, logger zerologger.Logger, codec zerocodec.Codec) EntityManager {
 	em := &entityManager{
-		db:     db,
-		cache:  cache,
-		st:     st,
-		logger: logger,
-		codec:  codec,
-		twp:    *zerotimer.NewPool(16, 500*time.Millisecond, 120),
+		db:      db,
+		cache:   cache,
+		st:      st,
+		logger:  logger,
+		codec:   codec,
+		twp:     *zerotimer.NewPool(16, 500*time.Millisecond, 120),
+		timeout: 500 * time.Millisecond,
 	}
 
 	em.twp.Start()
@@ -118,58 +133,72 @@ func (em *entityManager) Delete(id uint64, model interface{}) error {
 	return nil
 }
 
+// SetTimeout 设置超时时间
+func (em *entityManager) SetTimeout(timeout time.Duration) {
+	em.timeout = timeout
+}
+
 func (em *entityManager) get(id uint64, query QueryHandler, out interface{}) error {
-	var err error
-	if err = em.getFromCache(id, out); err != nil {
-		if err == ErrEmptyPlaceholder {
-			// 未命中缓存，且未在数据库中找到
-			return ErrNotFound
-		} else if err != em.cache.ErrNotFound() {
-			// 查找过程异常
-			return err
+	key := strconv.FormatUint(id, 10)
+
+	ch := g.DoChan(key, func() (any, error) {
+		if err := em.getFromCache(id, out); err != nil {
+			if err == ErrEmptyPlaceholder {
+				// 未命中缓存，且未在数据库中找到
+				return nil, ErrNotFound
+			} else if err != em.cache.ErrNotFound() {
+				// 查找过程异常
+				return nil, err
+			}
+
+			if query != nil {
+				// 自定义查找
+				err = query(id, out)
+			} else {
+				// 默认通过主键查找
+				err = em.db.Get(id, out)
+			}
+
+			if err == em.db.ErrNotFound() {
+				// 未从数据库中找到，设置短期缓存
+				em.setCacheWithNotFound(id)
+				return nil, err
+			}
+			if err != nil {
+				// 数据库查找失败
+				em.st.IncrementDBFails()
+				em.logger.Errorf("query from db failed, id: %d, err: %s", id, err.Error())
+				return nil, err
+			}
+
+			// 查找成功，写入缓存
+
+			bs, err := em.codec.Marshal(out)
+			if err != nil {
+				em.logger.Errorf("marshal failed, id: %d, err: %s", id, err.Error())
+				return nil, err
+			}
+
+			if err = em.cache.Set(id, bs); err != nil {
+				em.logger.Errorf("set cache failed, id: %d, err: %s", id, err.Error())
+				return nil, err
+			}
+
+			return bs, nil
 		}
 
-		if query != nil {
-			// 自定义查找
-			err = query(id, out)
-		} else {
-			// 默认通过主键查找
-			err = em.db.Get(id, out)
-		}
+		return em.codec.Marshal(out)
+	})
 
-		if err == em.db.ErrNotFound() {
-			// 未从数据库中找到
-			em.setCacheWithNotFound(id)
-			return err
+	select {
+	case <-time.After(em.timeout):
+		return ErrTimeout
+	case ret := <-ch:
+		if ret.Err != nil {
+			return ret.Err
 		}
-		if err != nil {
-			// 数据库查找失败
-			em.st.IncrementDBFails()
-			em.logger.Errorf("query from db failed, id: %d, err: %s", id, err.Error())
-			return err
-		}
-
-		// 查找成功，写入缓存
-
-		bs, err := em.codec.Marshal(out)
-		if err != nil {
-			em.logger.Errorf("marshal failed, id: %d, err: %s", id, err.Error())
-			return err
-		}
-
-		if err = em.cache.Set(id, bs); err != nil {
-			em.logger.Errorf("set cache failed, id: %d, err: %s", id, err.Error())
-			return err
-		}
-
-		return nil
+		return em.codec.Unmarshal(ret.Val.([]byte), out)
 	}
-
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (em *entityManager) getFromCache(id uint64, out interface{}) error {

@@ -14,6 +14,7 @@ require (
 	github.com/panjf2000/ants/v2 v2.5.0
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5
 	github.com/sirupsen/logrus v1.8.1
+	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/mysql v1.1.2

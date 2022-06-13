@@ -27,11 +27,11 @@ func main() {
 
 	// 数据库
 	db := zerodatabase.NewDatabase(
-		zerodatabase.WithUsername("username"),
-		zerodatabase.WithPassword("password"),
+		zerodatabase.WithUsername("root"),
+		zerodatabase.WithPassword("sNoJO6iqbBudAxUt"),
 		zerodatabase.WithHost("127.0.0.1"),
 		zerodatabase.WithPort(3306),
-		zerodatabase.WithDBName("database name"),
+		zerodatabase.WithDBName("test"),
 	)
 	if err := db.Open(); err != nil {
 		logger.Fatalf("open db failed, err: %s", err.Error())
@@ -49,6 +49,8 @@ func main() {
 	)
 
 	var account Account
+
+	// 查找一个不存在的数据
 	_ = em.Get(3, &account)
 	_ = em.Get(3, &account)
 
