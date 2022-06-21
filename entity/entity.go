@@ -252,12 +252,12 @@ func (em *entityManager) setCacheWithNotFound(id uint64) {
 // doubleDeleteCache 缓存双删
 func (em *entityManager) doubleDeleteCache(id uint64) {
 	// 立即从缓存中删除
-	if err := em.cache.Delete(id); err != nil {
+	if err := em.cache.Delete(id); err != nil && err != em.cache.ErrNotFound() {
 		em.logger.Errorf("failed to delete in cache, id: %d, err: %s", id, err.Error())
 	}
 	// 延迟从缓存中删除
 	em.twp.AddTask(2*time.Second, 1, func(t time.Time) {
-		if err := em.cache.Delete(id); err != nil {
+		if err := em.cache.Delete(id); err != nil && err != em.cache.ErrNotFound() {
 			em.logger.Errorf("failed to delay delete in cache, id: %d, err: %s", id, err.Error())
 		}
 	})
