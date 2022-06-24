@@ -1,7 +1,6 @@
 package entity
 
 import (
-	"strconv"
 	"time"
 
 	bigcache "github.com/allegro/bigcache/v3"
@@ -23,16 +22,16 @@ func NewWrapCache(eviction time.Duration) WrapCache {
 	}
 }
 
-func (w *wrapBigcache) Get(id uint64) ([]byte, error) {
-	return w.cache.Get(strconv.FormatUint(id, 10))
+func (w *wrapBigcache) Get(key string) ([]byte, error) {
+	return w.cache.Get(key)
 }
 
-func (w *wrapBigcache) Set(id uint64, in []byte) error {
-	return w.cache.Set(strconv.FormatUint(id, 10), in)
+func (w *wrapBigcache) Set(key string, in []byte) error {
+	return w.cache.Set(key, in)
 }
 
-func (w *wrapBigcache) Delete(id uint64) error {
-	return w.cache.Delete(strconv.FormatUint(id, 10))
+func (w *wrapBigcache) Delete(key string) error {
+	return w.cache.Delete(key)
 }
 
 func (w *wrapBigcache) ErrNotFound() error {

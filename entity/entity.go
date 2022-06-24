@@ -39,6 +39,9 @@ type EntityManager interface {
 	// GetWithQuery 根据主键获取数据
 	GetWithQuery(id uint64, query QueryHandler, out interface{}) error
 
+	// List 列出 key 对应的数据
+	List(key string, query QueryHandler, out interface{}) error
+
 	// Update 更新
 	Update(id uint64, in interface{}) error
 
@@ -59,9 +62,9 @@ type WrapDB interface {
 
 // WrapCache 封装缓存
 type WrapCache interface {
-	Get(id uint64) ([]byte, error)
-	Set(id uint64, in []byte) error
-	Delete(id uint64) error
+	Get(key string) ([]byte, error)
+	Set(key string, in []byte) error
+	Delete(key string) error
 	ErrNotFound() error
 }
 
@@ -99,12 +102,18 @@ func NewManager(db WrapDB, cache WrapCache, st *Stat, logger zerologger.Logger, 
 
 // Get 根据主键获取数据
 func (em *entityManager) Get(id uint64, out interface{}) error {
-	return em.get(id, nil, out)
+	key := strconv.FormatUint(id, 10)
+	return em.get(id, key, nil, out)
 }
 
 // GetWithQuery 根据主键获取数据
 func (em *entityManager) GetWithQuery(id uint64, query QueryHandler, out interface{}) error {
-	return em.get(id, query, out)
+	key := strconv.FormatUint(id, 10)
+	return em.get(id, key, query, out)
+}
+
+func (em *entityManager) List(key string, query QueryHandler, out interface{}) error {
+	return em.get(0, key, query, out)
 }
 
 // Update 更新
@@ -138,11 +147,9 @@ func (em *entityManager) SetTimeout(timeout time.Duration) {
 	em.timeout = timeout
 }
 
-func (em *entityManager) get(id uint64, query QueryHandler, out interface{}) error {
-	key := strconv.FormatUint(id, 10)
-
+func (em *entityManager) get(id uint64, key string, query QueryHandler, out interface{}) error {
 	ch := g.DoChan(key, func() (any, error) {
-		if err := em.getFromCache(id, out); err != nil {
+		if err := em.getFromCache(key, out); err != nil {
 			if err == ErrEmptyPlaceholder {
 				// 未命中缓存，且未在数据库中找到
 				return nil, ErrNotFound
@@ -161,7 +168,7 @@ func (em *entityManager) get(id uint64, query QueryHandler, out interface{}) err
 
 			if err == em.db.ErrNotFound() {
 				// 未从数据库中找到，设置短期缓存
-				em.setCacheWithNotFound(id)
+				em.setCacheWithNotFound(key)
 				return nil, err
 			}
 			if err != nil {
@@ -179,7 +186,7 @@ func (em *entityManager) get(id uint64, query QueryHandler, out interface{}) err
 				return nil, err
 			}
 
-			if err = em.cache.Set(id, bs); err != nil {
+			if err = em.cache.Set(key, bs); err != nil {
 				em.logger.Errorf("set cache failed, id: %d, err: %s", id, err.Error())
 				return nil, err
 			}
@@ -201,8 +208,8 @@ func (em *entityManager) get(id uint64, query QueryHandler, out interface{}) err
 	}
 }
 
-func (em *entityManager) getFromCache(id uint64, out interface{}) error {
-	data, err := em.cache.Get(id)
+func (em *entityManager) getFromCache(key string, out interface{}) error {
+	data, err := em.cache.Get(key)
 	if err != nil {
 		em.st.IncrementQueryMiss()
 		return err
@@ -225,39 +232,41 @@ func (em *entityManager) getFromCache(id uint64, out interface{}) error {
 		return nil
 	}
 
-	em.logger.Errorf("decode failed, id: %d, data: %v, err: %s", id, data, err.Error())
+	em.logger.Errorf("decode failed, key: %s, data: %v, err: %s", key, data, err.Error())
 
 	// 删除此错误的缓存
-	if err := em.cache.Delete(id); err != nil {
-		em.logger.Errorf("delete invalid cache failed, id: %d, err: %s", id, data, err.Error())
+	if err := em.cache.Delete(key); err != nil {
+		em.logger.Errorf("delete invalid cache failed, id: %d, err: %s", key, data, err.Error())
 	}
 
 	return em.cache.ErrNotFound()
 }
 
-func (em *entityManager) setCacheWithNotFound(id uint64) {
-	if err := em.cache.Set(id, emptyPlaceholder); err != nil {
-		em.logger.Errorf("set cache with not found failed, id: %d, err: %s", id, err.Error())
+func (em *entityManager) setCacheWithNotFound(key string) {
+	if err := em.cache.Set(key, emptyPlaceholder); err != nil {
+		em.logger.Errorf("set cache with not found failed, key: %s, err: %s", key, err.Error())
 		return
 	}
 
 	// 一分钟后删除这个短期缓存
 	em.twp.AddTask(1*time.Minute, 1, func(t time.Time) {
-		if err := em.cache.Delete(id); err != nil {
-			em.logger.Errorf("failed to delay delete in cache, id: %d, err: %s", id, err.Error())
+		if err := em.cache.Delete(key); err != nil {
+			em.logger.Errorf("failed to delay delete in cache, key: %s, err: %s", key, err.Error())
 		}
 	})
 }
 
 // doubleDeleteCache 缓存双删
 func (em *entityManager) doubleDeleteCache(id uint64) {
+	key := strconv.FormatUint(id, 10)
+
 	// 立即从缓存中删除
-	if err := em.cache.Delete(id); err != nil && err != em.cache.ErrNotFound() {
+	if err := em.cache.Delete(key); err != nil && err != em.cache.ErrNotFound() {
 		em.logger.Errorf("failed to delete in cache, id: %d, err: %s", id, err.Error())
 	}
 	// 延迟从缓存中删除
 	em.twp.AddTask(2*time.Second, 1, func(t time.Time) {
-		if err := em.cache.Delete(id); err != nil && err != em.cache.ErrNotFound() {
+		if err := em.cache.Delete(key); err != nil && err != em.cache.ErrNotFound() {
 			em.logger.Errorf("failed to delay delete in cache, id: %d, err: %s", id, err.Error())
 		}
 	})
