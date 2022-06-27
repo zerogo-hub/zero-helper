@@ -15,11 +15,29 @@ func TestLower(t *testing.T) {
 	}
 }
 
+func TestLowerWithNumber(t *testing.T) {
+	r := zerorandom.LowerWithNumber(10)
+	for _, c := range r {
+		if c > 'A' && c < 'Z' {
+			t.Errorf("test lower with number failed, c: %v", c)
+		}
+	}
+}
+
 func TestUpper(t *testing.T) {
 	r := zerorandom.Upper(10)
 	for _, c := range r {
 		if c < 'A' || c > 'Z' {
 			t.Errorf("test upper failed, c: %v", c)
+		}
+	}
+}
+
+func TestUpperWithNumber(t *testing.T) {
+	r := zerorandom.UpperWithNumber(10)
+	for _, c := range r {
+		if c > 'a' && c < 'z' {
+			t.Errorf("test upper with number failed, c: %v", c)
 		}
 	}
 }

@@ -10,9 +10,11 @@ import (
 )
 
 var (
-	allLetters   = []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-	lowerLetters = []byte("abcdefghijklmnopqrstuvwxyz")
-	upperLetters = []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	allLetters         = []byte("abcdefghijklmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789")
+	lowerLetters       = []byte("abcdefghijklmnopqrstuvwxyz")
+	lowerNumberLetters = []byte("abcdefghjkmnpqrstuvwxyz23456789")
+	upperLetters       = []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	upperNumberLetters = []byte("ABCDEFGHJKMNPQRSTUVWXYZ23456789")
 )
 
 // String 获取指定长度的字符串，包括大小写字母和数字
@@ -25,9 +27,19 @@ func Lower(length int) string {
 	return rs(lowerLetters, length)
 }
 
+// LowerWithNumber 获取指定长度的字符串，包含小写字母和数字
+func LowerWithNumber(length int) string {
+	return rs(lowerNumberLetters, length)
+}
+
 // Upper 获取指定长度的字符串，仅包含大写字母
 func Upper(length int) string {
 	return rs(upperLetters, length)
+}
+
+// UpperWithNumber 获取指定长度的字符串，包含大写字母和数字
+func UpperWithNumber(length int) string {
+	return rs(upperNumberLetters, length)
 }
 
 func rs(letters []byte, length int) string {
