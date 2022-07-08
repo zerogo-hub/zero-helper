@@ -39,6 +39,9 @@ type EntityManager interface {
 	// GetWithQuery 根据主键获取数据
 	GetWithQuery(id uint64, query QueryHandler, out interface{}) error
 
+	// Set 缓存数据
+	Set(id uint64, in interface{}) error
+
 	// Update 更新
 	Update(id uint64, in interface{}) error
 
@@ -105,6 +108,22 @@ func (em *entityManager) Get(id uint64, out interface{}) error {
 // GetWithQuery 根据主键获取数据
 func (em *entityManager) GetWithQuery(id uint64, query QueryHandler, out interface{}) error {
 	return em.get(id, query, out)
+}
+
+// Set 缓存数据
+func (em *entityManager) Set(id uint64, in interface{}) error {
+	bs, err := em.codec.Marshal(in)
+	if err != nil {
+		em.logger.Errorf("marshal failed, id: %d, err: %s", id, err.Error())
+		return err
+	}
+
+	if err = em.cache.Set(id, bs); err != nil {
+		em.logger.Errorf("set cache failed, id: %d, err: %s", id, err.Error())
+		return err
+	}
+
+	return nil
 }
 
 // Update 更新
