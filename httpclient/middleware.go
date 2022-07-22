@@ -20,6 +20,12 @@ func WithSign(client *HTTPClient, secret string) {
 		nonce := zerorandom.LowerWithNumber(32)
 
 		if method == http.MethodGet || method == http.MethodDelete {
+			// 如果有缓存，需要事先设置缓存 key，否则自动生成的缓存 key 包含 timestamp/nonce 会使得缓存一直失效
+			if method == http.MethodGet && client.cacheAble() {
+				cacheKey := calcCacheKey(client, url)
+				client.WithCacheKey(cacheKey)
+			}
+
 			// 参数添加到 params 中
 			client.WithParams(map[string]string{
 				"timestamp": strconv.FormatUint(uint64(timestamp), 10),
@@ -47,6 +53,39 @@ func WithSign(client *HTTPClient, secret string) {
 	}
 
 	client.WithDefaultBefores(handler)
+}
+
+// calcCacheKey 在 GET 请求下生成缓存 key
+func calcCacheKey(client *HTTPClient, url string) string {
+	b := buffer()
+	defer releaseBuffer(b)
+	b.Reset()
+
+	b.WriteString(url)
+	b.WriteByte('?')
+
+	values := client.Params()
+
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+
+	sort.Strings(keys)
+
+	for _, key := range keys {
+		if key == "" {
+			continue
+		}
+
+		b.WriteString(key)
+		b.WriteByte('=')
+		vvs := values[key]
+		b.WriteString(vvs)
+		b.WriteByte('&')
+	}
+
+	return b.String()
 }
 
 func calcParamsSign(secret string, values map[string]string) string {

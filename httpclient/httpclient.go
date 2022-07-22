@@ -82,6 +82,9 @@ type HTTPClient struct {
 	// 内存型缓存
 	cache *bigcache.BigCache
 
+	// 调用 cacheKey 生成，也可以实现设置
+	cacheKey_ string
+
 	// 在执行前调用，比如可以额外添加参数，默认，先于 befores 执行
 	defaultBefores []BeforeHandler
 
@@ -261,6 +264,12 @@ func (client *HTTPClient) WithCacheTTL(ttl time.Duration) *HTTPClient {
 	return client
 }
 
+func (client *HTTPClient) WithCacheKey(cacheKey string) *HTTPClient {
+	client.cacheKey_ = cacheKey
+
+	return client
+}
+
 // WithDefaultBefores 设置默认执行前函数
 func (client *HTTPClient) WithDefaultBefores(handlers ...BeforeHandler) *HTTPClient {
 	client.defaultBefores = append(client.defaultBefores, handlers...)
@@ -336,6 +345,7 @@ func (client *HTTPClient) reset() {
 	client.params = nil
 	client.body = nil
 	client.isCache = false
+	client.cacheKey_ = ""
 	if client.isLocked {
 		client.isLocked = false
 		client.lock.Unlock()
@@ -531,8 +541,16 @@ func (client *HTTPClient) parseBody(body map[string]interface{}) (io.Reader, err
 	return nil, nil
 }
 
-func cacheKey(req *http.Request) string {
+func (client *HTTPClient) cacheKey(req *http.Request) string {
+	if client.cacheKey_ != "" {
+		return client.cacheKey_
+	}
+
 	return req.URL.String()
+}
+
+func (client *HTTPClient) cacheAble() bool {
+	return client.isDefaultCache || client.isCache
 }
 
 func (client *HTTPClient) getFromCache(req *http.Request) *Context {
@@ -540,7 +558,7 @@ func (client *HTTPClient) getFromCache(req *http.Request) *Context {
 		return nil
 	}
 
-	key := cacheKey(req)
+	key := client.cacheKey(req)
 	b, err := client.cache.Get(key)
 	if err != nil {
 		return nil
@@ -559,7 +577,7 @@ func (client *HTTPClient) setToCache(ctx *Context) {
 		return
 	}
 
-	key := cacheKey(ctx.req)
+	key := client.cacheKey(ctx.req)
 	_ = client.cache.Set(key, b)
 }
 

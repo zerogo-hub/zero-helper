@@ -11,7 +11,10 @@ func TestGet(t *testing.T) {
 	client := zerohttpclient.NewClient()
 
 	url := "https://www.keylala.cn"
-	ctx := client.WithCache(true).WithCacheTTL(time.Minute * time.Duration(10)).Get(url)
+	ctx := client.WithCache(true).WithCacheTTL(time.Minute * time.Duration(10)).WithParams(map[string]string{
+		"id":   "123456",
+		"last": "0",
+	}).Get(url)
 	if !ctx.IsOK() {
 		if ctx.IsTimeout() {
 			t.Fatal("Get timeout")
