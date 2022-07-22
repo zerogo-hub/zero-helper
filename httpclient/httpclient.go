@@ -19,6 +19,12 @@ import (
 	zerologger "github.com/zerogo-hub/zero-helper/logger"
 )
 
+// BeforeHandler 执行前中间件
+type BeforeHandler func(client *HTTPClient, method, url string) error
+
+// AfterHandler 执行后中间件
+type AfterHandler func(ctx *Context)
+
 // HTTPClient 封装客户端，可以使用该客户端重复调用
 type HTTPClient struct {
 	// 代理地址
@@ -75,6 +81,18 @@ type HTTPClient struct {
 
 	// 内存型缓存
 	cache *bigcache.BigCache
+
+	// 在执行前调用，比如可以额外添加参数，默认，先于 befores 执行
+	defaultBefores []BeforeHandler
+
+	// 在执行前调用，比如可以额外添加参数，每次调用前手动设置
+	befores []BeforeHandler
+
+	// 在执行后调用，默认，先于 afters 执行
+	defaultAfters []AfterHandler
+
+	// 每次调用前手动设置
+	afters []AfterHandler
 }
 
 // NewClient .
@@ -84,6 +102,16 @@ func NewClient() *HTTPClient {
 		dialTimeout: time.Second * time.Duration(2),
 		timeout:     time.Second * time.Duration(5),
 	}
+}
+
+// Params 获取参数
+func (client *HTTPClient) Params() map[string]string {
+	return client.params
+}
+
+// Body 获取 body
+func (client *HTTPClient) Body() map[string]interface{} {
+	return client.body
 }
 
 // WithProxy 设置代理地址
@@ -135,7 +163,7 @@ func (client *HTTPClient) WithCookie(cookies ...*http.Cookie) *HTTPClient {
 	return client
 }
 
-// WithParams 设置 params
+// WithParams 设置 params, GET, Delete 时使用
 func (client *HTTPClient) WithParams(params map[string]string) *HTTPClient {
 	if client.params == nil {
 		client.params = make(map[string]string)
@@ -148,7 +176,7 @@ func (client *HTTPClient) WithParams(params map[string]string) *HTTPClient {
 	return client
 }
 
-// WithBody 设置 body
+// WithBody 设置 body，Post, Put, Patch 时使用
 // body 格式: map[string]string 或者 map[string][]string
 func (client *HTTPClient) WithBody(body map[string]interface{}) *HTTPClient {
 	if client.params == nil {
@@ -233,44 +261,72 @@ func (client *HTTPClient) WithCacheTTL(ttl time.Duration) *HTTPClient {
 	return client
 }
 
+// WithDefaultBefores 设置默认执行前函数
+func (client *HTTPClient) WithDefaultBefores(handlers ...BeforeHandler) *HTTPClient {
+	client.defaultBefores = append(client.defaultBefores, handlers...)
+
+	return client
+}
+
+// WithBefores 设置执行前函数
+func (client *HTTPClient) WithBefores(handlers ...BeforeHandler) *HTTPClient {
+	client.befores = append(client.befores, handlers...)
+
+	return client
+}
+
+// WithDefaultAfters 设置默认执行后函数
+func (client *HTTPClient) WithDefaultAfters(handler ...AfterHandler) *HTTPClient {
+	client.defaultAfters = append(client.defaultAfters, handler...)
+
+	return client
+}
+
+// WithAfters 设置执行后函数
+func (client *HTTPClient) WithAfters(handlers ...AfterHandler) *HTTPClient {
+	client.afters = append(client.afters, handlers...)
+
+	return client
+}
+
 // Get .
 func (client *HTTPClient) Get(url string) *Context {
-	return client.do("GET", url)
+	return client.do(http.MethodGet, url)
 }
 
 // Post .
 func (client *HTTPClient) Post(url string) *Context {
-	return client.do("POST", url)
+	return client.do(http.MethodPost, url)
 }
 
 // Put .
 func (client *HTTPClient) Put(url string) *Context {
-	return client.do("PUT", url)
+	return client.do(http.MethodPut, url)
 }
 
 // Patch .
 func (client *HTTPClient) Patch(url string) *Context {
-	return client.do("PATCH", url)
+	return client.do(http.MethodPatch, url)
 }
 
 // Delete .
 func (client *HTTPClient) Delete(url string) *Context {
-	return client.do("DELETE", url)
+	return client.do(http.MethodDelete, url)
 }
 
 // Options .
 func (client *HTTPClient) Options(url string) *Context {
-	return client.do("OPTIONS", url)
+	return client.do(http.MethodOptions, url)
 }
 
 // Connect .
 func (client *HTTPClient) Connect(url string) *Context {
-	return client.do("CONNECT", url)
+	return client.do(http.MethodConnect, url)
 }
 
 // Trace .
 func (client *HTTPClient) Trace(url string) *Context {
-	return client.do("TRACE", url)
+	return client.do(http.MethodTrace, url)
 }
 
 // reset 每次调用结束后重置
@@ -286,8 +342,38 @@ func (client *HTTPClient) reset() {
 	}
 }
 
+func (client *HTTPClient) runBefores(method, url string) *Context {
+	for _, handler := range client.defaultBefores {
+		if err := handler(client, method, url); err != nil {
+			return newContextWithError(err)
+		}
+	}
+
+	for _, handler := range client.befores {
+		if err := handler(client, method, url); err != nil {
+			return newContextWithError(err)
+		}
+	}
+
+	return nil
+}
+
+func (client *HTTPClient) runAfters(ctx *Context) {
+	for _, handler := range client.defaultAfters {
+		handler(ctx)
+	}
+
+	for _, handler := range client.afters {
+		handler(ctx)
+	}
+}
+
 // do 执行
 func (client *HTTPClient) do(method, url string) *Context {
+	if ctx := client.runBefores(method, url); ctx != nil {
+		return ctx
+	}
+
 	headers := client.headers
 	cookies := client.cookies
 	params := client.params
@@ -314,6 +400,7 @@ func (client *HTTPClient) do(method, url string) *Context {
 	cacheAble := method == "GET" && (client.isDefaultCache || isCache)
 	if cacheAble {
 		if ctx := client.getFromCache(req); ctx != nil {
+			client.runAfters(ctx)
 			return ctx
 		}
 	}
@@ -345,6 +432,7 @@ func (client *HTTPClient) do(method, url string) *Context {
 		client.setToCache(ctx)
 	}
 
+	client.runAfters(ctx)
 	return ctx
 }
 
