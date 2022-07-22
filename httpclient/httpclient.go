@@ -389,6 +389,7 @@ func (client *HTTPClient) do(method, url string) *Context {
 	params := client.params
 	body := client.body
 	isCache := client.isCache
+	cacheKey_ := client.cacheKey_
 
 	client.reset()
 
@@ -409,7 +410,7 @@ func (client *HTTPClient) do(method, url string) *Context {
 	// 缓存
 	cacheAble := method == "GET" && (client.isDefaultCache || isCache)
 	if cacheAble {
-		if ctx := client.getFromCache(req); ctx != nil {
+		if ctx := client.getFromCache(req, cacheKey_); ctx != nil {
 			client.runAfters(ctx)
 			return ctx
 		}
@@ -439,7 +440,7 @@ func (client *HTTPClient) do(method, url string) *Context {
 	ctx := newContext(req, resp)
 
 	if cacheAble {
-		client.setToCache(ctx)
+		client.setToCache(ctx, cacheKey_)
 	}
 
 	client.runAfters(ctx)
@@ -553,12 +554,18 @@ func (client *HTTPClient) cacheAble() bool {
 	return client.isDefaultCache || client.isCache
 }
 
-func (client *HTTPClient) getFromCache(req *http.Request) *Context {
+func (client *HTTPClient) getFromCache(req *http.Request, cacheKey_ string) *Context {
 	if !client.ensureCache() {
 		return nil
 	}
 
-	key := client.cacheKey(req)
+	var key string
+	if cacheKey_ != "" {
+		key = cacheKey_
+	} else {
+		key = client.cacheKey(req)
+	}
+
 	b, err := client.cache.Get(key)
 	if err != nil {
 		return nil
@@ -567,7 +574,7 @@ func (client *HTTPClient) getFromCache(req *http.Request) *Context {
 	return newContextWithCache(req, b)
 }
 
-func (client *HTTPClient) setToCache(ctx *Context) {
+func (client *HTTPClient) setToCache(ctx *Context, cacheKey_ string) {
 	if !client.ensureCache() {
 		return
 	}
@@ -577,7 +584,13 @@ func (client *HTTPClient) setToCache(ctx *Context) {
 		return
 	}
 
-	key := client.cacheKey(ctx.req)
+	var key string
+	if cacheKey_ != "" {
+		key = cacheKey_
+	} else {
+		key = client.cacheKey(ctx.req)
+	}
+
 	_ = client.cache.Set(key, b)
 }
 
