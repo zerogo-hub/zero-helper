@@ -185,7 +185,10 @@ func (em *entityManager) get(id uint64, query QueryHandler, out interface{}) err
 			}
 			if err != nil {
 				// 数据库查找失败
-				em.st.IncrementDBFails()
+				if em.st != nil {
+					em.st.IncrementDBFails()
+				}
+
 				em.logger.Errorf("query from db failed, id: %d, err: %s", id, err.Error())
 				return nil, err
 			}
@@ -223,17 +226,23 @@ func (em *entityManager) get(id uint64, query QueryHandler, out interface{}) err
 func (em *entityManager) getFromCache(id uint64, out interface{}) error {
 	data, err := em.cache.Get(id)
 	if err != nil {
-		em.st.IncrementQueryMiss()
+		if em.st != nil {
+			em.st.IncrementQueryMiss()
+		}
 		return err
 	}
 
 	if len(data) == 0 {
-		em.st.IncrementQueryMiss()
+		if em.st != nil {
+			em.st.IncrementQueryMiss()
+		}
 		return em.cache.ErrNotFound()
 	}
 
 	// 从缓存中找到数据
-	em.st.IncrementQueryHit()
+	if em.st != nil {
+		em.st.IncrementQueryHit()
+	}
 	if bytes.Compare(data, emptyPlaceholder) == 0 {
 		// 未命中而设置的短期缓存
 		return ErrEmptyPlaceholder
