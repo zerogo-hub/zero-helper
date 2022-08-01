@@ -1,14 +1,14 @@
-package zip_test
+package zlib_test
 
 import (
 	"testing"
 
-	zerozip "github.com/zerogo-hub/zero-helper/compress/zip"
+	zerozlib "github.com/zerogo-hub/zero-helper/compress/zlib"
 )
 
-func TestZip(t *testing.T) {
-	s := "test zip"
-	c := zerozip.NewZip(5)
+func TestZlib(t *testing.T) {
+	s := "test zlib"
+	c := zerozlib.NewZlib(5)
 	t.Log(c.Name())
 
 	compressed, err := c.Compress([]byte(s))

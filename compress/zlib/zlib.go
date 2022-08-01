@@ -1,34 +1,34 @@
-package zip
+package zlib
 
 import (
 	"bytes"
-	czip "compress/zlib"
+	czlib "compress/zlib"
 	"io/ioutil"
 
 	zerocompress "github.com/zerogo-hub/zero-helper/compress"
 )
 
-type zip struct {
+type zlib struct {
 	level int
 }
 
-// NewZip ..
-func NewZip(level ...int) zerocompress.Compress {
-	l := czip.DefaultCompression
+// NewZlib ..
+func NewZlib(level ...int) zerocompress.Compress {
+	l := czlib.DefaultCompression
 	if len(level) > 0 {
 		l = level[0]
 	}
 
-	return &zip{
+	return &zlib{
 		level: l,
 	}
 }
 
 // Compress 压缩
-func (zip *zip) Compress(in []byte) ([]byte, error) {
+func (zlib *zlib) Compress(in []byte) ([]byte, error) {
 	var buffer bytes.Buffer
 
-	writer, err := czip.NewWriterLevel(&buffer, zip.level)
+	writer, err := czlib.NewWriterLevel(&buffer, zlib.level)
 	if err != nil {
 		return nil, err
 	}
@@ -49,8 +49,8 @@ func (zip *zip) Compress(in []byte) ([]byte, error) {
 }
 
 // Uncompress 解压缩
-func (zip *zip) Uncompress(in []byte) ([]byte, error) {
-	reader, err := czip.NewReader(bytes.NewReader(in))
+func (zlib *zlib) Uncompress(in []byte) ([]byte, error) {
+	reader, err := czlib.NewReader(bytes.NewReader(in))
 	if err != nil {
 		return nil, err
 	}
@@ -61,6 +61,6 @@ func (zip *zip) Uncompress(in []byte) ([]byte, error) {
 }
 
 // Name 获取名称
-func (zip *zip) Name() string {
-	return "zip"
+func (zlib *zlib) Name() string {
+	return "zlib"
 }
