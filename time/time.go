@@ -94,6 +94,8 @@ const (
 	YMD2
 	// YMD3 20181231
 	YMD3
+	// YMDHM 202208041648
+	YMDHM
 	// YMDHMS 2018-12-31 12:33:55
 	YMDHMS
 	// YMDHMS2 2018/12/31 12:33:55
@@ -122,6 +124,8 @@ func timeFormat(level int) string {
 		format = "2006/01/02"
 	case YMD3:
 		format = "20060102"
+	case YMDHM:
+		format = "200601021504"
 	case YMDHMS:
 		format = "2006-01-02 15:04:05"
 	case YMDHMS2:
