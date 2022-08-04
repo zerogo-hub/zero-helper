@@ -38,15 +38,13 @@ type bloom struct {
 	filter *libbloom.BloomFilter
 }
 
-// New 创建一个布隆过滤器
+// New 创建一个布隆过滤器，存储于内存中，非计数型
 // n 存放元素个数
 // fp 错误率
 func New(n uint, fp float64) Bloom {
 	filter := libbloom.NewWithEstimates(n, fp)
 
-	return &bloom{
-		filter: filter,
-	}
+	return &bloom{filter: filter}
 }
 
 func (b *bloom) Add(bytes []byte) {
