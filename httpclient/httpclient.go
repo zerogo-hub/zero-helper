@@ -182,7 +182,7 @@ func (client *HTTPClient) WithParams(params map[string]string) *HTTPClient {
 // WithBody 设置 body，Post, Put, Patch 时使用
 // body 格式: map[string]string 或者 map[string][]string
 func (client *HTTPClient) WithBody(body map[string]interface{}) *HTTPClient {
-	if client.params == nil {
+	if client.body == nil {
 		client.body = make(map[string]interface{})
 	}
 
