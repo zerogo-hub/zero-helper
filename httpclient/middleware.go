@@ -27,12 +27,17 @@ func WithSign(client *HTTPClient, secret string) {
 			}
 
 			// 参数添加到 params 中
-			client.WithParams(map[string]string{
-				"timestamp": strconv.FormatUint(uint64(timestamp), 10),
+			client.WithParams(map[string]interface{}{
+				"timestamp": timestamp,
 				"nonce":     nonce,
 			})
-			sign := calcParamsSign(secret, client.Params())
-			client.WithParams(map[string]string{
+
+			sign, err := calcSign(client, secret, client.Params())
+			if err != nil {
+				return err
+			}
+
+			client.WithParams(map[string]interface{}{
 				"sign": sign,
 			})
 		} else if method == http.MethodPost || method == http.MethodPut || method == http.MethodPatch {
@@ -41,7 +46,12 @@ func WithSign(client *HTTPClient, secret string) {
 				"timestamp": strconv.FormatUint(uint64(timestamp), 10),
 				"nonce":     nonce,
 			})
-			sign := calcBodySign(secret, client.Body())
+
+			sign, err := calcSign(client, secret, client.Body())
+			if err != nil {
+				return err
+			}
+
 			client.WithBody(map[string]interface{}{
 				"sign": sign,
 			})
@@ -64,7 +74,7 @@ func calcCacheKey(client *HTTPClient, url string) string {
 	b.WriteString(url)
 	b.WriteByte('?')
 
-	values := client.Params()
+	values, _ := client.ToURLValues(client.Params())
 
 	keys := make([]string, 0, len(values))
 	for key := range values {
@@ -81,19 +91,31 @@ func calcCacheKey(client *HTTPClient, url string) string {
 		b.WriteString(key)
 		b.WriteByte('=')
 		vvs := values[key]
-		b.WriteString(vvs)
+		for idx, vv := range vvs {
+			// 相同的参数使用 , 连接
+			// 例如: a=1&a=2&a=3，会构造成字符串: a=1,2,3
+			b.WriteString(vv)
+			if idx != len(vvs)-1 {
+				b.WriteByte(',')
+			}
+		}
 		b.WriteByte('&')
 	}
 
 	return b.String()
 }
 
-func calcParamsSign(secret string, values map[string]string) string {
+func calcSign(client *HTTPClient, secret string, values map[string]interface{}) (string, error) {
 	// 所有参数按照字母顺序从小到大排列
 	// 所有参数形成如 key1=value1key2=value2 的形式
-	size := len(values)
+	parsedValues, err := client.ToURLValues(values)
+	if err != nil {
+		return "", err
+	}
+
+	size := len(parsedValues)
 	keys := make([]string, 0, size)
-	for key := range values {
+	for key := range parsedValues {
 		keys = append(keys, key)
 	}
 
@@ -110,63 +132,19 @@ func calcParamsSign(secret string, values map[string]string) string {
 
 		b.WriteString(key)
 		b.WriteByte('=')
-		vvs := values[key]
-		b.WriteString(vvs)
-	}
-
-	signStr := b.String()
-	return calcWithHmacSha256(secret, signStr)
-}
-
-func calcBodySign(secret string, values map[string]interface{}) string {
-	// 所有参数按照字母顺序从小到大排列
-	// 所有参数形成如 key1=value1key2=value2 的形式
-	size := len(values)
-	keys := make([]string, 0, size)
-	for key := range values {
-		keys = append(keys, key)
-	}
-
-	sort.Strings(keys)
-
-	b := buffer()
-	defer releaseBuffer(b)
-	b.Reset()
-
-	for _, key := range keys {
-		if key == "" {
-			continue
-		}
-
-		b.WriteString(key)
-		b.WriteByte('=')
-		vvs := values[key]
-
-		switch vvs.(type) {
-		case string:
-			{
-				b.WriteString(key)
-				b.WriteByte('=')
-				vvs := values[key]
-				b.WriteString(vvs.(string))
-			}
-		case []string:
-			{
-				size := len(vvs.([]string))
-				for idx, vv := range vvs.([]string) {
-					// 相同的参数使用 , 连接
-					// 例如: a=1&a=2&a=3，会构造成字符串: a=1,2,3
-					b.WriteString(vv)
-					if idx != size-1 {
-						b.WriteByte(',')
-					}
-				}
+		vvs := parsedValues[key]
+		for idx, vv := range vvs {
+			// 相同的参数使用 , 连接
+			// 例如: a=1&a=2&a=3，会构造成字符串: a=1,2,3
+			b.WriteString(vv)
+			if idx != len(vvs)-1 {
+				b.WriteByte(',')
 			}
 		}
 	}
 
 	signStr := b.String()
-	return calcWithHmacSha256(secret, signStr)
+	return calcWithHmacSha256(secret, signStr), nil
 }
 
 // calcWithHmacSha256 使用 HmacSha256 进行签名

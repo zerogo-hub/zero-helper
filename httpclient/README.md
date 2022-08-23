@@ -26,7 +26,7 @@ fmt.Println(result)
 ```go
 client := zerohttpclient.NewClient()
 
-ctx := client.WithParams(map[string]string{
+ctx := client.WithParams(map[string]interface{}{
     "id": "123456",
     "name": "zero",
 }).Get("https://www.keylala.cn")

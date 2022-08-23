@@ -36,12 +36,12 @@ func WithCookie(cookies ...*http.Cookie) *HTTPClient {
 }
 
 // WithParams 设置 params
-func WithParams(params map[string]string) *HTTPClient {
+func WithParams(params map[string]interface{}) *HTTPClient {
 	return DefaultClient.WithParams(params)
 }
 
-// WithBody 设置 body
-// body 格式: map[string]string 或者 map[string][]string
+// WithBody 设置 body，interface{} 可以设置为 string 或者 []string
+// 也可以替换为 int8, []int8 等其它基础类型
 func WithBody(body map[string]interface{}) *HTTPClient {
 	return DefaultClient.WithBody(body)
 }

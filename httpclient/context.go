@@ -49,8 +49,13 @@ func (ctx *Context) Response() *http.Response {
 	return ctx.resp
 }
 
+// Error 获取错误信息
+func (ctx *Context) Error() error {
+	return ctx.err
+}
+
 // ToBytes .
-func (ctx *Context) ToByes() ([]byte, error) {
+func (ctx *Context) ToBytes() ([]byte, error) {
 	if ctx.err != nil {
 		return nil, ctx.err
 	}
@@ -76,7 +81,7 @@ func (ctx *Context) ToByes() ([]byte, error) {
 
 // ToString .
 func (ctx *Context) ToString() (string, error) {
-	bytes, err := ctx.ToByes()
+	bytes, err := ctx.ToBytes()
 	if err != nil {
 		return "", err
 	}
@@ -86,7 +91,7 @@ func (ctx *Context) ToString() (string, error) {
 
 // ToJSON .
 func (ctx *Context) ToJSON(out interface{}) error {
-	bytes, err := ctx.ToByes()
+	bytes, err := ctx.ToBytes()
 	if err != nil {
 		return err
 	}

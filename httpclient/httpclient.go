@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -40,7 +41,7 @@ type HTTPClient struct {
 	cookies []*http.Cookie
 
 	// params 添加到地址 url 上
-	params map[string]string
+	params map[string]interface{}
 
 	// body 添加到请求体 body 上
 	body map[string]interface{}
@@ -83,7 +84,7 @@ type HTTPClient struct {
 	cache *bigcache.BigCache
 
 	// 调用 cacheKey 生成，也可以实现设置
-	cacheKey_ string
+	doCacheKey string
 
 	// 在执行前调用，比如可以额外添加参数，默认，先于 befores 执行
 	defaultBefores []BeforeHandler
@@ -108,7 +109,7 @@ func NewClient() *HTTPClient {
 }
 
 // Params 获取参数
-func (client *HTTPClient) Params() map[string]string {
+func (client *HTTPClient) Params() map[string]interface{} {
 	return client.params
 }
 
@@ -167,9 +168,9 @@ func (client *HTTPClient) WithCookie(cookies ...*http.Cookie) *HTTPClient {
 }
 
 // WithParams 设置 params, GET, Delete 时使用
-func (client *HTTPClient) WithParams(params map[string]string) *HTTPClient {
+func (client *HTTPClient) WithParams(params map[string]interface{}) *HTTPClient {
 	if client.params == nil {
-		client.params = make(map[string]string)
+		client.params = make(map[string]interface{})
 	}
 
 	for k, v := range params {
@@ -264,8 +265,9 @@ func (client *HTTPClient) WithCacheTTL(ttl time.Duration) *HTTPClient {
 	return client
 }
 
+// WithCacheKey 设置缓存 key，不设置则使用默认
 func (client *HTTPClient) WithCacheKey(cacheKey string) *HTTPClient {
-	client.cacheKey_ = cacheKey
+	client.doCacheKey = cacheKey
 
 	return client
 }
@@ -345,7 +347,7 @@ func (client *HTTPClient) reset() {
 	client.params = nil
 	client.body = nil
 	client.isCache = false
-	client.cacheKey_ = ""
+	client.doCacheKey = ""
 	if client.isLocked {
 		client.isLocked = false
 		client.lock.Unlock()
@@ -389,7 +391,7 @@ func (client *HTTPClient) do(method, url string) *Context {
 	params := client.params
 	body := client.body
 	isCache := client.isCache
-	cacheKey_ := client.cacheKey_
+	doCacheKey := client.doCacheKey
 
 	client.reset()
 
@@ -410,7 +412,7 @@ func (client *HTTPClient) do(method, url string) *Context {
 	// 缓存
 	cacheAble := method == "GET" && (client.isDefaultCache || isCache)
 	if cacheAble {
-		if ctx := client.getFromCache(req, cacheKey_); ctx != nil {
+		if ctx := client.getFromCache(req, doCacheKey); ctx != nil {
 			client.runAfters(ctx)
 			return ctx
 		}
@@ -440,7 +442,7 @@ func (client *HTTPClient) do(method, url string) *Context {
 	ctx := newContext(req, resp)
 
 	if cacheAble {
-		client.setToCache(ctx, cacheKey_)
+		client.setToCache(ctx, doCacheKey)
 	}
 
 	client.runAfters(ctx)
@@ -469,7 +471,7 @@ func (client *HTTPClient) prepareTransport() (*http.Transport, error) {
 	return transport, nil
 }
 
-func (client *HTTPClient) prepareRequest(method, url string, headers, params map[string]string, body map[string]interface{}, cookies []*http.Cookie) (*http.Request, error) {
+func (client *HTTPClient) prepareRequest(method, url string, headers map[string]string, params, body map[string]interface{}, cookies []*http.Cookie) (*http.Request, error) {
 	var reader io.Reader
 	if body != nil {
 		var err error
@@ -491,10 +493,17 @@ func (client *HTTPClient) prepareRequest(method, url string, headers, params map
 	}
 
 	if params != nil {
-		query := req.URL.Query()
-		for k, v := range params {
-			query.Add(k, v)
+		parsedParams, err := client.ToURLValues(params)
+		if err != nil {
+			return nil, err
 		}
+		query := req.URL.Query()
+		for k, vv := range parsedParams {
+			for _, v := range vv {
+				query.Add(k, v)
+			}
+		}
+
 		req.URL.RawQuery = query.Encode()
 	}
 
@@ -502,7 +511,7 @@ func (client *HTTPClient) prepareRequest(method, url string, headers, params map
 		req.Header.Set(k, v)
 	}
 
-	for k, v := range client.headers {
+	for k, v := range headers {
 		req.Header.Set(k, v)
 	}
 
@@ -522,18 +531,9 @@ func (client *HTTPClient) parseBody(body map[string]interface{}) (io.Reader, err
 
 		return bytes.NewReader(b), nil
 	} else if strings.HasPrefix(client.contentType, "application/x-www-form-urlencoded") {
-		values := url.Values{}
-		for k, v := range body {
-			switch v.(type) {
-			case map[string]string:
-				values.Set(k, v.(string))
-			case map[string][]string:
-				for _, vv := range v.([]string) {
-					values.Set(k, vv)
-				}
-			default:
-				return nil, errors.New("invalid body type")
-			}
+		values, err := client.ToURLValues(body)
+		if err != nil {
+			return nil, err
 		}
 
 		return strings.NewReader(values.Encode()), nil
@@ -542,9 +542,49 @@ func (client *HTTPClient) parseBody(body map[string]interface{}) (io.Reader, err
 	return nil, nil
 }
 
+// ToURLValues 将 map[string]interface{} 解析成 map[string][]string
+func (client *HTTPClient) ToURLValues(kv map[string]interface{}) (url.Values, error) {
+	values := url.Values{}
+	for k, v := range kv {
+		switch v.(type) {
+		case int8:
+			values.Set(k, strconv.Itoa(int(v.(int8))))
+		case uint8:
+			values.Set(k, strconv.Itoa(int(v.(uint8))))
+		case int16:
+			values.Set(k, strconv.Itoa(int(v.(int16))))
+		case uint16:
+			values.Set(k, strconv.Itoa(int(v.(uint16))))
+		case int32:
+			values.Set(k, strconv.Itoa(int(v.(int32))))
+		case uint32:
+			values.Set(k, strconv.FormatUint(uint64(v.(uint32)), 10))
+		case int:
+			values.Set(k, strconv.Itoa(v.(int)))
+		case uint:
+			values.Set(k, strconv.FormatUint(uint64(v.(uint)), 10))
+		case int64:
+			values.Set(k, strconv.FormatInt(v.(int64), 10))
+		case uint64:
+			values.Set(k, strconv.FormatUint(v.(uint64), 10))
+		case string:
+			values.Set(k, v.(string))
+		case []string:
+			for _, vv := range v.([]string) {
+				values.Set(k, vv)
+			}
+		case nil:
+		default:
+			return nil, errors.New("invalid kv type")
+		}
+	}
+
+	return values, nil
+}
+
 func (client *HTTPClient) cacheKey(req *http.Request) string {
-	if client.cacheKey_ != "" {
-		return client.cacheKey_
+	if client.doCacheKey != "" {
+		return client.doCacheKey
 	}
 
 	return req.URL.String()
@@ -554,14 +594,14 @@ func (client *HTTPClient) cacheAble() bool {
 	return client.isDefaultCache || client.isCache
 }
 
-func (client *HTTPClient) getFromCache(req *http.Request, cacheKey_ string) *Context {
+func (client *HTTPClient) getFromCache(req *http.Request, doCacheKey string) *Context {
 	if !client.ensureCache() {
 		return nil
 	}
 
 	var key string
-	if cacheKey_ != "" {
-		key = cacheKey_
+	if doCacheKey != "" {
+		key = doCacheKey
 	} else {
 		key = client.cacheKey(req)
 	}
@@ -574,19 +614,19 @@ func (client *HTTPClient) getFromCache(req *http.Request, cacheKey_ string) *Con
 	return newContextWithCache(req, b)
 }
 
-func (client *HTTPClient) setToCache(ctx *Context, cacheKey_ string) {
+func (client *HTTPClient) setToCache(ctx *Context, doCacheKey string) {
 	if !client.ensureCache() {
 		return
 	}
 
-	b, err := ctx.ToByes()
+	b, err := ctx.ToBytes()
 	if err != nil {
 		return
 	}
 
 	var key string
-	if cacheKey_ != "" {
-		key = cacheKey_
+	if doCacheKey != "" {
+		key = doCacheKey
 	} else {
 		key = client.cacheKey(ctx.req)
 	}

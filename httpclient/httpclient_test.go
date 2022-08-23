@@ -11,7 +11,7 @@ func TestGet(t *testing.T) {
 	client := zerohttpclient.NewClient()
 
 	url := "https://www.keylala.cn"
-	ctx := client.WithCache(true).WithCacheTTL(time.Minute * time.Duration(10)).WithParams(map[string]string{
+	ctx := client.WithCache(true).WithCacheTTL(time.Minute * time.Duration(10)).WithParams(map[string]interface{}{
 		"id":   "123456",
 		"last": "0",
 	}).Get(url)
