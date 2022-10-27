@@ -104,6 +104,13 @@ func WeekIndex() int {
 	return WeekIndexByTime(&t)
 }
 
+// WeekID 已本周周几为编号
+//
+// eg: WeekID() => 7
+func WeekID() int8 {
+	return int8(WeekIndex())
+}
+
 // WeekIndexByTime 指定日期为一周的第几天，周一为第一天
 //
 // 返回 1|2|3|4|5|6|7
@@ -112,4 +119,13 @@ func WeekIndexByTime(t *time.Time) int {
 		return 0
 	}
 	return int((t.Weekday()+6)%7) + 1
+}
+
+// YearWeekID 以本周是今年的第几周为编号
+//
+// YearWeekID() => 202221
+func YearWeekID() int {
+	now := time.Now()
+	year, week := now.ISOWeek()
+	return year*100 + week
 }
