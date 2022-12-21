@@ -243,7 +243,7 @@ func (em *entityManager) getFromCache(id uint64, out interface{}) error {
 	if em.st != nil {
 		em.st.IncrementQueryHit()
 	}
-	if bytes.Compare(data, emptyPlaceholder) == 0 {
+	if bytes.Equal(data, emptyPlaceholder) {
 		// 未命中而设置的短期缓存
 		return ErrEmptyPlaceholder
 	}

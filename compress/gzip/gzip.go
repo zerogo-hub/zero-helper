@@ -3,7 +3,7 @@ package gzip
 import (
 	"bytes"
 	cgzip "compress/gzip"
-	"io/ioutil"
+	"io"
 
 	zerocompress "github.com/zerogo-hub/zero-helper/compress"
 )
@@ -57,7 +57,7 @@ func (gzip *gzip) Uncompress(in []byte) ([]byte, error) {
 
 	defer reader.Close()
 
-	return ioutil.ReadAll(reader)
+	return io.ReadAll(reader)
 }
 
 // Name 获取名称

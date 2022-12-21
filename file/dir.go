@@ -1,13 +1,13 @@
 package file
 
 import (
-	"io/ioutil"
+	"os"
 	"path"
 )
 
 // ListDirs 列出指定目录的文件夹
 func ListDirs(dirname string) ([]string, error) {
-	dirs, err := ioutil.ReadDir(dirname)
+	dirs, err := os.ReadDir(dirname)
 	if err != nil {
 		return nil, err
 	}

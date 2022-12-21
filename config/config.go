@@ -3,7 +3,7 @@ package config
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
+	"io"
 	"os"
 	"strconv"
 
@@ -168,7 +168,7 @@ func loadFile(path string) ([]byte, error) {
 		return nil, err
 	}
 	defer file.Close()
-	bytes, err := ioutil.ReadAll(file)
+	bytes, err := io.ReadAll(file)
 	if err != nil {
 		return nil, err
 	}

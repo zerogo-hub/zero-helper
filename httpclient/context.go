@@ -2,7 +2,7 @@ package httpclient
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 )
@@ -69,7 +69,7 @@ func (ctx *Context) ToBytes() ([]byte, error) {
 	}
 
 	defer ctx.resp.Body.Close()
-	body, err := ioutil.ReadAll(ctx.resp.Body)
+	body, err := io.ReadAll(ctx.resp.Body)
 	if err != nil {
 		ctx.err = err
 		return nil, err

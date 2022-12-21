@@ -3,7 +3,7 @@ package flate
 import (
 	"bytes"
 	cflate "compress/flate"
-	"io/ioutil"
+	"io"
 
 	zerocompress "github.com/zerogo-hub/zero-helper/compress"
 )
@@ -54,7 +54,7 @@ func (flate *flate) Uncompress(in []byte) ([]byte, error) {
 
 	defer reader.Close()
 
-	return ioutil.ReadAll(reader)
+	return io.ReadAll(reader)
 }
 
 // Name 获取名称

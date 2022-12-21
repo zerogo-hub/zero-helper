@@ -166,16 +166,6 @@ func (s *slot) add(task *Task) {
 	s.tasks.PushBack(task)
 }
 
-func (s *slot) remove(id uint64) {
-	for e := s.tasks.Front(); e != nil; {
-		task := e.Value.(*Task)
-		if task.id == id {
-			s.tasks.Remove(e)
-			return
-		}
-	}
-}
-
 func (s *slot) run(t time.Time) {
 	for e := s.tasks.Front(); e != nil; {
 		task := e.Value.(*Task)

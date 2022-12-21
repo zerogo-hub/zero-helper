@@ -73,7 +73,7 @@ func TestRangeInt(t *testing.T) {
 func TestRangeUnt(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		result := zerorandom.Uint32()
-		if 0 < 0 || result > ^uint32(0) {
+		if 0 < result || result > ^uint32(0) {
 			t.Errorf("test uint failed, result: %d", result)
 		}
 	}

@@ -2,6 +2,7 @@ package httpclient
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -452,7 +453,7 @@ func (client *HTTPClient) do(method, url string) *Context {
 func (client *HTTPClient) prepareTransport() (*http.Transport, error) {
 	transport := &http.Transport{}
 
-	transport.Dial = func(network, addr string) (net.Conn, error) {
+	transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
 		conn, err := net.DialTimeout(network, addr, client.dialTimeout)
 		if err != nil {
 			return nil, err
@@ -546,31 +547,31 @@ func (client *HTTPClient) parseBody(body map[string]interface{}) (io.Reader, err
 func (client *HTTPClient) ToURLValues(kv map[string]interface{}) (url.Values, error) {
 	values := url.Values{}
 	for k, v := range kv {
-		switch v.(type) {
+		switch v := v.(type) {
 		case int8:
-			values.Set(k, strconv.Itoa(int(v.(int8))))
+			values.Set(k, strconv.Itoa(int(v)))
 		case uint8:
-			values.Set(k, strconv.Itoa(int(v.(uint8))))
+			values.Set(k, strconv.Itoa(int(v)))
 		case int16:
-			values.Set(k, strconv.Itoa(int(v.(int16))))
+			values.Set(k, strconv.Itoa(int(v)))
 		case uint16:
-			values.Set(k, strconv.Itoa(int(v.(uint16))))
+			values.Set(k, strconv.Itoa(int(v)))
 		case int32:
-			values.Set(k, strconv.Itoa(int(v.(int32))))
+			values.Set(k, strconv.Itoa(int(v)))
 		case uint32:
-			values.Set(k, strconv.FormatUint(uint64(v.(uint32)), 10))
+			values.Set(k, strconv.FormatUint(uint64(v), 10))
 		case int:
-			values.Set(k, strconv.Itoa(v.(int)))
+			values.Set(k, strconv.Itoa(v))
 		case uint:
-			values.Set(k, strconv.FormatUint(uint64(v.(uint)), 10))
+			values.Set(k, strconv.FormatUint(uint64(v), 10))
 		case int64:
-			values.Set(k, strconv.FormatInt(v.(int64), 10))
+			values.Set(k, strconv.FormatInt(v, 10))
 		case uint64:
-			values.Set(k, strconv.FormatUint(v.(uint64), 10))
+			values.Set(k, strconv.FormatUint(v, 10))
 		case string:
-			values.Set(k, v.(string))
+			values.Set(k, v)
 		case []string:
-			for _, vv := range v.([]string) {
+			for _, vv := range v {
 				values.Set(k, vv)
 			}
 		case nil:
