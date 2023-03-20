@@ -1,12 +1,14 @@
 package json
 
 import (
-	"encoding/json"
+	jsoniterator "github.com/json-iterator/go"
 
 	zerocodec "github.com/zerogo-hub/zero-helper/codec"
 )
 
 type jsonCodec struct{}
+
+var json = jsoniterator.ConfigCompatibleWithStandardLibrary
 
 // NewJSONCodec JSON
 func NewJSONCodec() zerocodec.Codec {
