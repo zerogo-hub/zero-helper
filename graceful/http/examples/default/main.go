@@ -20,7 +20,7 @@ func (ds *defaultServer) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	// 这里进行逻辑处理，比如按照路由进行处理
 
 	pid := os.Getpid()
-	message := fmt.Sprintf("`ctrl+c` to close, `kill %d` to shutdown, `kill -USR2 %d` to restart", pid, pid)
+	message := fmt.Sprintf("`ctrl+c` to close, `kill %d` to shutdown, `ctrl+\\` to restart", pid)
 	res.Write([]byte(message))
 }
 
