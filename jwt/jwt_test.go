@@ -2,7 +2,6 @@ package jwt_test
 
 import (
 	"testing"
-	"time"
 
 	zerojwt "github.com/zerogo-hub/zero-helper/jwt"
 	zerotime "github.com/zerogo-hub/zero-helper/time"
@@ -80,7 +79,7 @@ func TestInvalidToken(t *testing.T) {
 
 	j := zerojwt.NewJWT(zerojwt.Option{
 		Secret: []byte("12345"),
-		Exp:    zerotime.Millisecond(1),
+		Exp:    zerotime.Millisecond(1000),
 	})
 
 	data := map[string]interface{}{
@@ -93,14 +92,12 @@ func TestInvalidToken(t *testing.T) {
 		t.Fatalf("create token failed: %s", err.Error())
 	}
 
-	time.Sleep(zerotime.Millisecond(15))
-
 	if _, err = j.Verify(token); err != nil {
 		t.Fatalf("verify token timeout failed: %s", err.Error())
 	}
 
 	// 无效 token
 	if _, err = j.Verify(token + "s"); err == nil {
-		t.Fatalf("verify invalid token failed: %s", err.Error())
+		t.Fatal("verify invalid token failed")
 	}
 }

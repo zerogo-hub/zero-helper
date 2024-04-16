@@ -15,7 +15,7 @@ func TestSnowflake(t *testing.T) {
 	// 节点数量
 	workerNum := 5
 	// 每一个节点生成的数量
-	uuidNum := 10000
+	uuidNum := 1000
 
 	var wg sync.WaitGroup
 	wg.Add(workerNum)

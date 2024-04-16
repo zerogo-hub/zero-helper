@@ -271,7 +271,7 @@ func (s *server) ListenSignal() {
 
 func (s *server) waitSignal() {
 	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM, syscall.SIGUSR2)
+	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	sig := <-ch
 	signal.Stop(ch)
 
@@ -281,7 +281,7 @@ func (s *server) waitSignal() {
 	case syscall.SIGINT, syscall.SIGTERM:
 		s.logger.Info("close signal .. shutdown server ..")
 		s.Shutdown()
-	case syscall.SIGUSR2:
+	case syscall.SIGQUIT:
 		s.logger.Info("restart signal .. restart server ..")
 		s.Restart()
 	default:
