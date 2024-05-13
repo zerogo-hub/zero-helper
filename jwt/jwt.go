@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	jwtgo "github.com/golang-jwt/jwt/v4"
+	jwtgo "github.com/golang-jwt/jwt/v5"
 )
 
 // JWT ..

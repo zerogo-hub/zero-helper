@@ -9,7 +9,7 @@ require (
 	github.com/bytedance/sonic v1.11.6
 	github.com/go-gomail/gomail v0.0.0-20160411212932-81ebce5c23df
 	github.com/gogo/protobuf v1.3.2
-	github.com/golang-jwt/jwt/v4 v4.5.0
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/gomodule/redigo v1.9.2
 	github.com/json-iterator/go v1.1.12
 	github.com/lestrrat/go-file-rotatelogs v0.0.0-20180223000712-d3151e2a480f
