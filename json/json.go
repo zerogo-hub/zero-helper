@@ -1,8 +1,7 @@
 package json
 
 import (
-	"bytes"
-	libJSON "encoding/json"
+	libJSON "github.com/bytedance/sonic"
 )
 
 // Marshal ..
@@ -16,8 +15,7 @@ func Unmarshal(data []byte, v interface{}) error {
 }
 
 // UnmarshalNumber 结构体中包含大整型，如 int64、uint64，使用默认的 Unmarshal 可能会丢失精度
+// Deprecated: Use Unmarshal directly.
 func UnmarshalNumber(data []byte, v interface{}) error {
-	decoder := libJSON.NewDecoder(bytes.NewReader(data))
-	decoder.UseNumber()
-	return decoder.Decode(v)
+	return Unmarshal(data, v)
 }
