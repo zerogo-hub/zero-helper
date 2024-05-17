@@ -15,8 +15,8 @@ var (
 
 type protobufCodec struct{}
 
-// NewProtobufCodec 创建默认的编码与解码器
-func NewProtobufCodec() zerocodec.Codec {
+// New 创建默认的编码与解码器
+func New() zerocodec.Codec {
 	return &protobufCodec{}
 }
 

@@ -7,8 +7,8 @@ import (
 
 type jsonCodec struct{}
 
-// NewJSONCodec JSON
-func NewJSONCodec() zerocodec.Codec {
+// New JSON
+func New() zerocodec.Codec {
 	return &jsonCodec{}
 }
 
