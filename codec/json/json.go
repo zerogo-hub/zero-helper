@@ -1,14 +1,11 @@
 package json
 
 import (
-	jsoniterator "github.com/json-iterator/go"
-
 	zerocodec "github.com/zerogo-hub/zero-helper/codec"
+	zerojson "github.com/zerogo-hub/zero-helper/json"
 )
 
 type jsonCodec struct{}
-
-var json = jsoniterator.ConfigCompatibleWithStandardLibrary
 
 // NewJSONCodec JSON
 func NewJSONCodec() zerocodec.Codec {
@@ -17,12 +14,12 @@ func NewJSONCodec() zerocodec.Codec {
 
 // Marshal 编码
 func (*jsonCodec) Marshal(in interface{}) ([]byte, error) {
-	return json.Marshal(in)
+	return zerojson.Marshal(in)
 }
 
 // Unmarshal 解码
 func (*jsonCodec) Unmarshal(in []byte, out interface{}) error {
-	return json.Unmarshal(in, out)
+	return zerojson.Unmarshal(in, out)
 }
 
 // Name 名称
