@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package codec;
+
+option go_package = ".";
+
+// protoc --go_out=. *.proto
+message Item {
+   int64 ID = 1;
+   string Name = 2;
+}

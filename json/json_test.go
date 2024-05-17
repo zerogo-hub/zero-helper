@@ -3,49 +3,20 @@ package json_test
 import (
 	cjson "encoding/json"
 	"testing"
-	"time"
 
 	zerojson "github.com/zerogo-hub/zero-helper/json"
+	zerotest "github.com/zerogo-hub/zero-helper/test"
 )
 
-type Item struct {
-	ID   int64
-	Name string
-}
-
-func newItem() *Item {
-	id := time.Now().Unix() * 100000000
-	item := &Item{
-		ID:   id,
-		Name: "ITEM_NAME",
-	}
-
-	return item
-}
-
-func newItems(n int64) []*Item {
-	id := time.Now().Unix() * 100000000
-	items := make([]*Item, 0, n)
-
-	for i := int64(1); i <= n; i++ {
-		items = append(items, &Item{
-			ID:   id + i,
-			Name: "ITEM_NAME",
-		})
-	}
-
-	return items
-}
-
 func TestJSON(t *testing.T) {
-	item := newItem()
+	item := zerotest.NewItem()
 
 	itemBytes, err := zerojson.Marshal(item)
 	if err != nil {
 		t.Fatalf("zerojson.Marshal failed: %s", err.Error())
 	}
 
-	var newItem *Item
+	var newItem *zerotest.Item
 	err = zerojson.Unmarshal(itemBytes, &newItem)
 	if err != nil {
 		t.Fatalf("zerojson.Unmarshal failed: %s", err.Error())
@@ -57,7 +28,7 @@ func TestJSON(t *testing.T) {
 }
 
 func BenchmarkMarshal_1_StdLib(b *testing.B) {
-	items := newItems(1)
+	items := zerotest.NewItems(1)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -66,7 +37,7 @@ func BenchmarkMarshal_1_StdLib(b *testing.B) {
 }
 
 func BenchmarkMarshal_1_ZeroJSON(b *testing.B) {
-	items := newItems(1)
+	items := zerotest.NewItems(1)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -75,7 +46,7 @@ func BenchmarkMarshal_1_ZeroJSON(b *testing.B) {
 }
 
 func BenchmarkUnmarshal_1_StdLib(b *testing.B) {
-	itemsStr, _ := cjson.Marshal(newItems(1))
+	itemsStr, _ := cjson.Marshal(zerotest.NewItems(1))
 	itemsBytes := []byte(itemsStr)
 
 	b.ResetTimer()
@@ -85,7 +56,7 @@ func BenchmarkUnmarshal_1_StdLib(b *testing.B) {
 }
 
 func BenchmarkUnmarshal_1_ZeroJSON(b *testing.B) {
-	itemsStr, _ := cjson.Marshal(newItems(1))
+	itemsStr, _ := cjson.Marshal(zerotest.NewItems(1))
 	itemsBytes := []byte(itemsStr)
 
 	b.ResetTimer()
@@ -95,7 +66,7 @@ func BenchmarkUnmarshal_1_ZeroJSON(b *testing.B) {
 }
 
 func BenchmarkMarshal_100_StdLib(b *testing.B) {
-	items := newItems(100)
+	items := zerotest.NewItems(100)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -104,7 +75,7 @@ func BenchmarkMarshal_100_StdLib(b *testing.B) {
 }
 
 func BenchmarkMarshal_100_ZeroJSON(b *testing.B) {
-	items := newItems(100)
+	items := zerotest.NewItems(100)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -113,7 +84,7 @@ func BenchmarkMarshal_100_ZeroJSON(b *testing.B) {
 }
 
 func BenchmarkUnmarshal_100_StdLib(b *testing.B) {
-	itemsStr, _ := cjson.Marshal(newItems(100))
+	itemsStr, _ := cjson.Marshal(zerotest.NewItems(100))
 	itemsBytes := []byte(itemsStr)
 
 	b.ResetTimer()
@@ -123,7 +94,7 @@ func BenchmarkUnmarshal_100_StdLib(b *testing.B) {
 }
 
 func BenchmarkUnmarshal_100_ZeroJSON(b *testing.B) {
-	itemsStr, _ := cjson.Marshal(newItems(100))
+	itemsStr, _ := cjson.Marshal(zerotest.NewItems(100))
 	itemsBytes := []byte(itemsStr)
 
 	b.ResetTimer()
@@ -133,7 +104,7 @@ func BenchmarkUnmarshal_100_ZeroJSON(b *testing.B) {
 }
 
 func BenchmarkMarsha_500_StdLib(b *testing.B) {
-	items := newItems(500)
+	items := zerotest.NewItems(500)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -142,7 +113,7 @@ func BenchmarkMarsha_500_StdLib(b *testing.B) {
 }
 
 func BenchmarkMarshal_500_ZeroJSON(b *testing.B) {
-	items := newItems(500)
+	items := zerotest.NewItems(500)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -151,7 +122,7 @@ func BenchmarkMarshal_500_ZeroJSON(b *testing.B) {
 }
 
 func BenchmarkUnmarshal_500_StdLib(b *testing.B) {
-	itemsStr, _ := cjson.Marshal(newItems(500))
+	itemsStr, _ := cjson.Marshal(zerotest.NewItems(500))
 	itemsBytes := []byte(itemsStr)
 
 	b.ResetTimer()
@@ -161,7 +132,7 @@ func BenchmarkUnmarshal_500_StdLib(b *testing.B) {
 }
 
 func BenchmarkUnmarshal_500_ZeroJSON(b *testing.B) {
-	itemsStr, _ := cjson.Marshal(newItems(500))
+	itemsStr, _ := cjson.Marshal(zerotest.NewItems(500))
 	itemsBytes := []byte(itemsStr)
 
 	b.ResetTimer()
