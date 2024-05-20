@@ -1,12 +1,12 @@
 package random
 
 import (
-	"bytes"
-	cr "crypto/rand"
-	"encoding/binary"
-	"math/rand"
-	"sync"
-	"time"
+	libBytes "bytes"
+	libCryptoRand "crypto/rand"
+	libBinary "encoding/binary"
+	libMathRand "math/rand"
+	libSync "sync"
+	libTime "time"
 )
 
 var (
@@ -46,7 +46,7 @@ func rs(letters []byte, length int) string {
 	buf := buffer()
 	defer releaseBuffer(buf)
 
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	r := libMathRand.New(libMathRand.NewSource(libTime.Now().UnixNano()))
 
 	for start := 0; start < length; start++ {
 		buf.WriteByte(letters[r.Intn(len(letters))])
@@ -56,41 +56,40 @@ func rs(letters []byte, length int) string {
 }
 
 // Int 获取指定范围内的整数
+// 返回值 [min, max)
 func Int(min, max int64) int64 {
 	if min >= max || min == max {
 		return max
 	}
-	return rand.Int63n(max-min) + min
+	return libMathRand.Int63n(max-min) + min
 }
 
 // Uint32 获取随机数，类型为 uint32
 func Uint32() uint32 {
 	var v uint32
-	if err := binary.Read(cr.Reader, binary.BigEndian, &v); err == nil {
+	if err := libBinary.Read(libCryptoRand.Reader, libBinary.BigEndian, &v); err == nil {
 		return v
 	}
 	panic("Random failed")
 }
 
-var bufferPool *sync.Pool
+var bufferPool *libSync.Pool
 
 func init() {
-	rand.Seed(time.Now().UnixNano())
-
-	bufferPool = &sync.Pool{}
+	bufferPool = &libSync.Pool{}
 	bufferPool.New = func() interface{} {
-		return &bytes.Buffer{}
+		return &libBytes.Buffer{}
 	}
 }
 
 // buffer 从池中获取 buffer
-func buffer() *bytes.Buffer {
-	buff := bufferPool.Get().(*bytes.Buffer)
+func buffer() *libBytes.Buffer {
+	buff := bufferPool.Get().(*libBytes.Buffer)
 	buff.Reset()
 	return buff
 }
 
 // releaseBuffer 将 buff 放入池中
-func releaseBuffer(buff *bytes.Buffer) {
+func releaseBuffer(buff *libBytes.Buffer) {
 	bufferPool.Put(buff)
 }

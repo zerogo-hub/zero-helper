@@ -64,13 +64,26 @@ func TestRangeInt(t *testing.T) {
 	max := int64(10)
 	for i := 0; i < 1000; i++ {
 		result := zerorandom.Int(min, max)
-		if result < min || result > max {
-			t.Errorf("test int failed, result: %d", result)
+		if result < min || result >= max {
+			t.Errorf("TestRangeInt failed, result: %d", result)
 		}
+	}
+
+	max = min + 1
+	for i := 0; i < 1000; i++ {
+		result := zerorandom.Int(min, max)
+		if result < min || result >= max {
+			t.Errorf("TestRangeInt failed, result: %d", result)
+		}
+	}
+
+	result := zerorandom.Int(5, 3)
+	if result != 3 {
+		t.Errorf("TestRangeInt failed, result: %d", result)
 	}
 }
 
-func TestRangeUnt(t *testing.T) {
+func TestRangeUint32(t *testing.T) {
 	max := ^uint32(0)
 	t.Log(max)
 	for i := 0; i < 1000; i++ {
