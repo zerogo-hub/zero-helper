@@ -1,27 +1,24 @@
 package random_test
 
 import (
-	"strconv"
 	"testing"
 
 	zerorandom "github.com/zerogo-hub/zero-helper/random"
+	zerotest "github.com/zerogo-hub/zero-helper/test"
 )
 
-type Item struct {
-	id     int
-	name   string
-	weight int
-}
-
 func TestChoicePick(t *testing.T) {
-	n := 10
-	items := make([]Item, 0, n)
-	for i := 1; i <= n; i++ {
-		items = append(items, Item{id: i, name: "NAME_" + strconv.Itoa(i), weight: i * 100})
+	_, err := zerorandom.NewChooser([]*zerotest.Item{}, func(item *zerotest.Item) int64 {
+		return item.Weight
+	})
+	if err == nil {
+		t.Fatal("err cant be nil")
 	}
 
-	c, err := zerorandom.NewChooser(items, func(item Item) int {
-		return item.weight
+	items := zerotest.NewItems(10)
+
+	c, err := zerorandom.NewChooser(items, func(item *zerotest.Item) int64 {
+		return item.Weight
 	})
 	if err != nil {
 		t.Fatalf("build chooser failed, err: %s", err.Error())
@@ -33,11 +30,6 @@ func TestChoicePick(t *testing.T) {
 }
 
 func TestChoicePickOnce(t *testing.T) {
-	n := 10
-	items := make([]Item, 0, n)
-	for i := 1; i <= n; i++ {
-		items = append(items, Item{id: i, name: "NAME_" + strconv.Itoa(i), weight: i * 100})
-	}
-
-	_ = zerorandom.PickOnce(items, func(item Item) int { return item.weight })
+	items := zerotest.NewItems(10)
+	_ = zerorandom.PickOnce(items, func(item *zerotest.Item) int64 { return item.Weight })
 }

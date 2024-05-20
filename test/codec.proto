@@ -8,4 +8,5 @@ option go_package = ".";
 message Item {
    int64 ID = 1;
    string Name = 2;
+   int64 Weight = 3;
 }

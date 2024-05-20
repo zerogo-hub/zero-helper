@@ -5,5 +5,7 @@ mod:
 	go mod vendor
 lint:
 	golangci-lint run
+
+.PHONY: test
 test:
 	go test ./... -coverprofile cover.out && go tool cover -html=cover.out -o cover.html
