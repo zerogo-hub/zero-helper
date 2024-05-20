@@ -22,9 +22,14 @@
 - ip: IP 字符串类型地址与整型的转换
 - json: 替换默认的 `json` 解析库
 - jwt: 封装 `jwt`
+- locker: 分布式锁
 - logger: 日志相关
 - os: 系统相关
 - random: 随机数
+  - choice: 权重随机
+  - shortsf: 46 位，workID [1,8]
+  - snowflake: 64 位，workID [0,1023]
+  - uuid: 单机版
 - reflect: 封装 `reflect`
 - regexp: 一些正则表达式
 - time: 时间相关

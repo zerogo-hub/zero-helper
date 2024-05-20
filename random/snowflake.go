@@ -83,6 +83,7 @@ type Snowflake struct {
 }
 
 // NewSnowflake 创建生成器
+// workID 取值 [0,1023]
 func NewSnowflake(workerID int) (*Snowflake, error) {
 	return NewSnowflakeBy(workerID, defaultSnowflakeOriginTime, defaultSnowflakeWorkerIDBits, defaultSnowflakeSequenceBits, nil, nil)
 }
