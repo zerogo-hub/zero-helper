@@ -12,6 +12,8 @@ import (
 	"time"
 
 	ants "github.com/panjf2000/ants/v2"
+
+	zeroutils "github.com/zerogo-hub/zero-helper/utils"
 )
 
 var (
@@ -221,7 +223,7 @@ type TimerWheel struct {
 
 // New 创建一个时间轮
 func New(interval time.Duration, slotNum int) *TimerWheel {
-	slotNum = f2(slotNum)
+	slotNum = zeroutils.F2(slotNum)
 
 	tw := &TimerWheel{
 		interval: interval,
@@ -405,21 +407,6 @@ func (tw *TimerWheel) calcTaskRoundAndPos(task *Task) (round, pos int) {
 	round = int(delay / interval / int64(tw.slotNum))
 	pos = int(tw.pos+int(delay/interval)) & (tw.slotNum - 1)
 	return
-}
-
-func f2(num int) int {
-	if num <= 0 {
-		return 1
-	}
-
-	num = num - 1
-	num |= num >> 1
-	num |= num >> 2
-	num |= num >> 4
-	num |= num >> 8
-	num |= num >> 16
-
-	return int(num + 1)
 }
 
 func init() {

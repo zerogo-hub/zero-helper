@@ -3,6 +3,8 @@ package timer
 import (
 	"sync/atomic"
 	"time"
+
+	zeroutils "github.com/zerogo-hub/zero-helper/utils"
 )
 
 // TimerWheelPool 时间轮池
@@ -17,7 +19,7 @@ type TimerWheelPool struct {
 
 // NewPool 创建一个时间轮池
 func NewPool(poolsize int, interval time.Duration, slotNum int) *TimerWheelPool {
-	poolsize = f2(poolsize)
+	poolsize = zeroutils.F2(poolsize)
 
 	twp := &TimerWheelPool{
 		twpool:   make([]*TimerWheel, 0, poolsize),
