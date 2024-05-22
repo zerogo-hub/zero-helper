@@ -24,8 +24,8 @@ type database struct {
 	db   *gorm.DB
 }
 
-// NewDatabase ..
-func NewDatabase(opts ...Option) Database {
+// New ..
+func New(opts ...Option) Database {
 	d := &database{
 		conf: defaultConfig(),
 	}
