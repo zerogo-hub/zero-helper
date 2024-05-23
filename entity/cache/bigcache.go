@@ -1,10 +1,12 @@
-package entity
+package cache
 
 import (
+	"context"
 	"strconv"
 	"time"
 
 	bigcache "github.com/allegro/bigcache/v3"
+	zeroentity "github.com/zerogo-hub/zero-helper/entity"
 )
 
 // wrapBigcache 封装 bigcache
@@ -13,10 +15,13 @@ type wrapBigcache struct {
 	errNotFound error
 }
 
-// NewWrapCache ..
+// NewBigCache ..
+//
 // eviction 过期时间
-func NewWrapCache(eviction time.Duration) WrapCache {
-	cache, _ := bigcache.NewBigCache(bigcache.DefaultConfig(eviction))
+//
+// 缺点: 无法单独对指定的 key 单独设置过期时间
+func NewBigCache(eviction time.Duration) zeroentity.WrapCache {
+	cache, _ := bigcache.New(context.Background(), bigcache.DefaultConfig(eviction))
 	return &wrapBigcache{
 		cache:       cache,
 		errNotFound: bigcache.ErrEntryNotFound,
@@ -25,6 +30,17 @@ func NewWrapCache(eviction time.Duration) WrapCache {
 
 func (w *wrapBigcache) Get(id uint64) ([]byte, error) {
 	return w.cache.Get(strconv.FormatUint(id, 10))
+}
+
+func (w *wrapBigcache) MGet(ids ...uint64) ([]*zeroentity.Value, error) {
+	// 不支持批量获取，改为遍历获取
+	results := make([]*zeroentity.Value, len(ids))
+	for _, id := range ids {
+		val, err := w.Get(id)
+		results = append(results, &zeroentity.Value{ID: id, Val: val, Err: err})
+	}
+
+	return results, nil
 }
 
 func (w *wrapBigcache) Set(id uint64, in []byte) error {

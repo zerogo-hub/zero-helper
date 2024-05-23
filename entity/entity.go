@@ -2,7 +2,6 @@ package entity
 
 import (
 	"bytes"
-	"errors"
 	"strconv"
 	"time"
 
@@ -11,282 +10,494 @@ import (
 	zerocodec "github.com/zerogo-hub/zero-helper/codec"
 	zerologger "github.com/zerogo-hub/zero-helper/logger"
 	zerotimer "github.com/zerogo-hub/zero-helper/timer"
+	zeroutils "github.com/zerogo-hub/zero-helper/utils"
 )
 
-var (
-	// ErrNotFound 数据未找到
-	ErrNotFound = errors.New("data not found")
-	// ErrEmptyPlaceholder 数据为空
-	ErrEmptyPlaceholder = errors.New("empty placeholder")
-	// ErrTimeout 超时
-	ErrTimeout = errors.New("timeout")
-)
+type entity struct {
 
-var (
-	emptyPlaceholder = []byte("*")
+	// db 数据库，如 gorm、sqlx
+	readDBs []WrapReadDB
+	writeDB WrapWriteDB
 
-	g singleflight.Group
-)
+	// localCache 进程内缓存，本地缓存，如 bigcache、freecache
+	localCache WrapCache
 
-// QueryHandler 查询函数
-type QueryHandler func(id uint64, out interface{}) error
+	// remoteCache 进程外缓存，远端缓存，如 redis
+	remoteCache WrapCache
 
-// EntityManager 实体管理器
-type EntityManager interface {
-	// Get 根据主键获取数据
-	Get(id uint64, out interface{}) error
+	query  QueryHandler
+	update UpdateHandler
+	delete DeleteHandler
 
-	// GetWithQuery 根据主键获取数据
-	GetWithQuery(id uint64, query QueryHandler, out interface{}) error
+	// readDBsMatchF2 读数据库数量是否符合 2 的 n 次方，求余优化
+	readDBsMatchF2 bool
 
-	// Set 缓存数据
-	Set(id uint64, in interface{}) error
+	// st 命中统计
+	st *Stat
 
-	// Update 更新
-	Update(id uint64, in interface{}) error
+	// codec 编码解码，默认 msgpack
+	codec zerocodec.Codec
 
-	// Delete 删除
-	Delete(id uint64, model interface{}) error
-
-	// SetTimeout 设置超时时间
-	SetTimeout(timeout time.Duration)
-}
-
-// WrapDB 封装数据库
-type WrapDB interface {
-	Get(id uint64, out interface{}) error
-	Update(in interface{}) error
-	Delete(id uint64, model interface{}) error
-	ErrNotFound() error
-}
-
-// WrapCache 封装缓存
-type WrapCache interface {
-	Get(id uint64) ([]byte, error)
-	Set(id uint64, in []byte) error
-	Delete(id uint64) error
-	ErrNotFound() error
-}
-
-type entityManager struct {
-	db     WrapDB
-	cache  WrapCache
-	st     *Stat
-	logger zerologger.Logger
-	codec  zerocodec.Codec
-
-	// twp 时间轮，定时器
+	// twp 时间轮，定时器，用于缓存双删
 	twp zerotimer.TimerWheelPool
 
 	// timeout 给 singleflight 设置一个超时时间
-	// 如果大量相同并发请求阻塞时间过长，非常致命
 	timeout time.Duration
+
+	// notFoundExpired 数据未找到时设置短期缓存的有效期，默认 1 分钟
+	notFoundExpired time.Duration
+
+	logger zerologger.Logger
+	g      singleflight.Group
+	// gMulti singleflight.Group
 }
 
-// NewManager 创建一个实体管理器
-func NewManager(db WrapDB, cache WrapCache, st *Stat, logger zerologger.Logger, codec zerocodec.Codec) EntityManager {
-	em := &entityManager{
-		db:      db,
-		cache:   cache,
-		st:      st,
-		logger:  logger,
-		codec:   codec,
-		twp:     *zerotimer.NewPool(16, 500*time.Millisecond, 120),
-		timeout: 500 * time.Millisecond,
+// New 创建一个实体管理器
+func New(st *Stat, logger zerologger.Logger, codec zerocodec.Codec) Entity {
+	e := &entity{
+		st:              st,
+		codec:           codec,
+		twp:             *zerotimer.NewPool(16, 500*time.Millisecond, 120),
+		timeout:         500 * time.Millisecond,
+		notFoundExpired: 1 * time.Minute,
+		logger:          logger,
 	}
 
-	em.twp.Start()
+	return e
+}
 
-	return em
+func (e *entity) Build() {
+	e.twp.Start()
+
+	if len(e.readDBs) == zeroutils.F2(len(e.readDBs)) {
+		e.readDBsMatchF2 = true
+	}
 }
 
 // Get 根据主键获取数据
-func (em *entityManager) Get(id uint64, out interface{}) error {
-	return em.get(id, nil, out)
+func (e *entity) Get(out interface{}, id uint64) error {
+	return e.get(out, id, nil)
 }
 
 // GetWithQuery 根据主键获取数据
-func (em *entityManager) GetWithQuery(id uint64, query QueryHandler, out interface{}) error {
-	return em.get(id, query, out)
+func (e *entity) GetWithQuery(out interface{}, id uint64, query QueryHandler) error {
+	return e.get(out, id, query)
 }
 
-// Set 缓存数据
-func (em *entityManager) Set(id uint64, in interface{}) error {
-	bs, err := em.codec.Marshal(in)
-	if err != nil {
-		em.logger.Errorf("marshal failed, id: %d, err: %s", id, err.Error())
-		return err
+// MGet 根据主键批量获取数据
+func (e *entity) MGet(out interface{}, ids ...uint64) (*Result, error) {
+	if len(ids) == 0 {
+		return &Result{}, nil
 	}
 
-	if err = em.cache.Set(id, bs); err != nil {
-		em.logger.Errorf("set cache failed, id: %d, err: %s", id, err.Error())
-		return err
+	result := &Result{
+		IDIndexs: getIdIndex(ids...),
+		Vals:     make(map[int][]byte, len(ids)),
+		Errs:     make(map[int]error, len(ids)),
 	}
 
-	return nil
+	missIds := make([]uint64, 0, len(ids))
+	copy(missIds, ids)
+
+	if e.localCache != nil {
+		missIds = e.getMultiFromCache(e.localCache, result, ids...)
+		if len(missIds) == 0 {
+			// 全部命中缓存
+			return result, nil
+		}
+	}
+
+	if e.remoteCache != nil {
+		missIds = e.getMultiFromCache(e.remoteCache, result, missIds...)
+		if len(missIds) == 0 {
+			// 全部命中缓存
+			return result, nil
+		}
+	}
+
+	missIdsNotCache := make([]uint64, 0, len(missIds))
+	copy(missIdsNotCache, missIds)
+
+	// if e.db != nil {
+	// 	err := e.db.MGet(out, missIds...)
+	// 	if err == nil {
+	// 		missIds := []uint64{}
+
+	// 	}
+	// }
+
+	// if e.multiCustomHandler != nil {
+	// 	err := e.multiCustomHandler(out, missIds...)
+	// 	if err == nil {
+	// 		missIds := []uint64{}
+
+	// 	}
+	// }
+
+	return nil, nil
 }
 
 // Update 更新
-func (em *entityManager) Update(id uint64, in interface{}) error {
-	// 先保存数据库
-	if err := em.db.Update(in); err != nil {
-		em.logger.Errorf("failed to update in db, id: %d, err: %s", id, err.Error())
-		return err
+func (e *entity) Update(model interface{}, id uint64) error {
+	if e.writeDB != nil {
+		if err := e.writeDB.Update(model); err != nil {
+			e.logger.Errorf("failed to update in db, id: %d, err: %s", id, err.Error())
+			return err
+		}
 	}
 
-	em.doubleDeleteCache(id)
+	if e.update != nil {
+		if err := e.update(model, id); err != nil {
+			e.logger.Errorf("failed to update in e.update, id: %d, err: %s", id, err.Error())
+		}
+	}
+
+	e.doubleDeleteCache(id)
 
 	return nil
 }
 
 // Delete 删除
-func (em *entityManager) Delete(id uint64, model interface{}) error {
-	// 先从数据库中删除
-	if err := em.db.Delete(id, model); err != nil {
-		em.logger.Errorf("failed to delete in db, id: %d, err: %s", id, err.Error())
-		return err
+func (e *entity) Delete(model interface{}, id uint64) error {
+	if e.writeDB != nil {
+		if err := e.writeDB.Delete(id, model); err != nil {
+			e.logger.Errorf("failed to delete in db, id: %d, err: %s", id, err.Error())
+			return err
+		}
 	}
 
-	em.doubleDeleteCache(id)
+	if e.delete != nil {
+		if err := e.delete(model, id); err != nil {
+			e.logger.Errorf("failed to delete in e.delete, id: %d, err: %s", id, err.Error())
+		}
+	}
+
+	e.doubleDeleteCache(id)
 
 	return nil
 }
 
-// SetTimeout 设置超时时间
-func (em *entityManager) SetTimeout(timeout time.Duration) {
-	em.timeout = timeout
+// WithCodec 设置编码解码器
+func (e *entity) WithCodec(codec zerocodec.Codec) Entity {
+	e.codec = codec
+	return e
 }
 
-func (em *entityManager) get(id uint64, query QueryHandler, out interface{}) error {
-	key := strconv.FormatUint(id, 10)
+// SetTimeout 设置超时时间
+func (e *entity) WithTimeout(timeout time.Duration) Entity {
+	e.timeout = timeout
+	return e
+}
 
-	ch := g.DoChan(key, func() (any, error) {
-		if err := em.getFromCache(id, out); err != nil {
+// WithNotFoundExipred 设置短期缓存有效期
+func (e *entity) WithNotFoundExipred(expired time.Duration) Entity {
+	e.notFoundExpired = expired
+	return e
+}
+
+func (e *entity) WithReadDB(dbs ...WrapReadDB) Entity {
+	if len(e.readDBs) == 0 {
+		e.readDBs = make([]WrapReadDB, 0, len(dbs))
+	}
+	e.readDBs = append(e.readDBs, dbs...)
+	return e
+}
+
+func (e *entity) WithWriteDB(db WrapWriteDB) Entity {
+	e.writeDB = db
+	return e
+}
+
+func (e *entity) WithLocalCache(localCache WrapCache) Entity {
+	e.localCache = localCache
+	return e
+}
+
+func (e *entity) WithRemoteCache(remoteCache WrapCache) Entity {
+	e.remoteCache = remoteCache
+	return e
+}
+
+func (e *entity) WithCustomQueryHandler(handler QueryHandler) Entity {
+	e.query = handler
+	return e
+}
+
+func (e *entity) WithCustomUpdateHandler(handler UpdateHandler) Entity {
+	e.update = handler
+	return e
+}
+
+func (e *entity) WithCustomDeleteHandler(handler DeleteHandler) Entity {
+	e.delete = handler
+	return e
+}
+
+func (e *entity) get(out interface{}, id uint64, query QueryHandler) error {
+	key := genSingleFlightKey(id)
+
+	ch := e.g.DoChan(key, func() (interface{}, error) {
+		var err error
+
+		// 本地缓存
+		if e.localCache != nil {
+			bs, err := e.getFromLocalCache(id)
+			if err == nil {
+				return bs, nil
+			}
 			if err == ErrEmptyPlaceholder {
-				// 未命中缓存，且未在数据库中找到
 				return nil, ErrNotFound
-			} else if err != em.cache.ErrNotFound() {
-				// 查找过程异常
-				return nil, err
 			}
-
-			if query != nil {
-				// 自定义查找
-				err = query(id, out)
-			} else {
-				// 默认通过主键查找
-				err = em.db.Get(id, out)
-			}
-
-			if err == em.db.ErrNotFound() {
-				// 未从数据库中找到，设置短期缓存
-				em.setCacheWithNotFound(id)
-				return nil, err
-			}
-			if err != nil {
-				// 数据库查找失败
-				if em.st != nil {
-					em.st.IncrementDBFails()
-				}
-
-				em.logger.Errorf("query from db failed, id: %d, err: %s", id, err.Error())
-				return nil, err
-			}
-
-			// 查找成功，写入缓存
-
-			bs, err := em.codec.Marshal(out)
-			if err != nil {
-				em.logger.Errorf("marshal failed, id: %d, err: %s", id, err.Error())
-				return nil, err
-			}
-
-			if err = em.cache.Set(id, bs); err != nil {
-				em.logger.Errorf("set cache failed, id: %d, err: %s", id, err.Error())
-				return nil, err
-			}
-
-			return bs, nil
 		}
 
-		return em.codec.Marshal(out)
+		// 远端缓存
+		if e.remoteCache != nil {
+			bs, err := e.getFromRemoteCache(id)
+			if err == nil {
+				return bs, nil
+			}
+			if err == ErrEmptyPlaceholder {
+				return nil, ErrNotFound
+			}
+		}
+
+		// 以下查找出来的结果会存入缓存中
+
+		if query != nil {
+			// 本次单独传入的自定义查找
+			err = query(out, id)
+
+			if err != nil && e.st != nil {
+				e.st.incDBFail()
+			}
+		} else if len(e.readDBs) > 0 {
+			// 默认通过主键查找
+			err = e.readDB(id).Get(id, out)
+
+			if err != nil && e.st != nil {
+				e.st.incDBFail()
+			}
+		} else if e.query != nil {
+			// 全局自定义查找
+			err = e.query(out, id)
+
+			if err != nil && e.st != nil {
+				e.st.incCustomHandlerFail()
+			}
+		} else {
+			return nil, ErrNotFound
+		}
+
+		if err != nil {
+			// 数据未找到，设置短期缓存
+			e.setCacheWithNotFound(id)
+			return nil, err
+		}
+
+		// 查找成功，写入缓存
+		bs, err := e.codec.Marshal(out)
+		if err != nil {
+			e.logger.Errorf("marshal failed, id: %d, err: %s", id, err.Error())
+			return nil, err
+		}
+		e.setCache(id, bs)
+
+		return bs, nil
 	})
 
 	select {
-	case <-time.After(em.timeout):
+	case <-time.After(e.timeout):
 		return ErrTimeout
 	case ret := <-ch:
 		if ret.Err != nil {
 			return ret.Err
 		}
-		return em.codec.Unmarshal(ret.Val.([]byte), out)
+		return e.codec.Unmarshal(ret.Val.([]byte), out)
 	}
 }
 
-func (em *entityManager) getFromCache(id uint64, out interface{}) error {
-	data, err := em.cache.Get(id)
-	if err != nil {
-		if em.st != nil {
-			em.st.IncrementQueryMiss()
-		}
-		return err
-	}
-
-	if len(data) == 0 {
-		if em.st != nil {
-			em.st.IncrementQueryMiss()
-		}
-		return em.cache.ErrNotFound()
-	}
-
-	// 从缓存中找到数据
-	if em.st != nil {
-		em.st.IncrementQueryHit()
-	}
-	if bytes.Equal(data, emptyPlaceholder) {
-		// 未命中而设置的短期缓存
-		return ErrEmptyPlaceholder
-	}
-
-	err = em.codec.Unmarshal(data, out)
-	if err == nil {
+// readDB 获取一条数据库读配置
+//
+// 数据库读缓存，求余优化
+func (e *entity) readDB(id uint64) WrapReadDB {
+	count := len(e.readDBs)
+	if count == 1 {
+		return e.readDBs[0]
+	} else if count == 0 {
 		return nil
 	}
 
-	em.logger.Errorf("decode failed, id: %d, data: %v, err: %s", id, data, err.Error())
-
-	// 删除此错误的缓存
-	if err := em.cache.Delete(id); err != nil {
-		em.logger.Errorf("delete invalid cache failed, id: %d, err: %s", id, data, err.Error())
+	if e.readDBsMatchF2 {
+		return e.readDBs[id&uint64((len(e.readDBs))-1)]
 	}
-
-	return em.cache.ErrNotFound()
+	return e.readDBs[id%uint64(len(e.readDBs))]
 }
 
-func (em *entityManager) setCacheWithNotFound(id uint64) {
-	if err := em.cache.Set(id, emptyPlaceholder); err != nil {
-		em.logger.Errorf("set cache with not found failed, id: %d, err: %s", id, err.Error())
-		return
+func (e *entity) getFromLocalCache(id uint64) ([]byte, error) {
+	data, err := e.localCache.Get(id)
+	if err != nil {
+		if e.st != nil {
+			e.st.incLocalCacheMiss()
+		}
+		return nil, err
 	}
 
-	// 一分钟后删除这个短期缓存
-	em.twp.AddTask(1*time.Minute, 1, func(t time.Time) {
-		if err := em.cache.Delete(id); err != nil {
-			em.logger.Errorf("failed to delay delete in cache, id: %d, err: %s", id, err.Error())
+	if len(data) == 0 {
+		if e.st != nil {
+			e.st.incLocalCacheMiss()
 		}
-	})
+		return nil, e.localCache.ErrNotFound()
+	}
+
+	// 从缓存中找到数据
+	if e.st != nil {
+		e.st.incLocalCacheHit()
+	}
+
+	if bytes.Equal(data, emptyPlaceholder) {
+		// 未命中而设置的短期缓存
+		return nil, ErrEmptyPlaceholder
+	}
+
+	return data, nil
+}
+
+func (e *entity) getFromRemoteCache(id uint64) ([]byte, error) {
+	data, err := e.remoteCache.Get(id)
+	if err != nil {
+		if e.st != nil {
+			e.st.incRemoteCacheMiss()
+		}
+		return nil, err
+	}
+
+	if len(data) == 0 {
+		if e.st != nil {
+			e.st.incRemoteCacheMiss()
+		}
+		return nil, e.remoteCache.ErrNotFound()
+	}
+
+	// 从缓存中找到数据
+	if e.st != nil {
+		e.st.incRemoteCacheHit()
+	}
+	if bytes.Equal(data, emptyPlaceholder) {
+		// 未命中而设置的短期缓存
+		return nil, ErrEmptyPlaceholder
+	}
+
+	return data, nil
+}
+
+func (e *entity) setCacheWithNotFound(id uint64) {
+	if e.localCache != nil {
+		if err := e.localCache.Set(id, emptyPlaceholder); err != nil {
+			e.logger.Errorf("set local cache with not found failed, id: %d, err: %s", id, err.Error())
+			return
+		}
+
+		e.twp.AddTask(e.notFoundExpired, 1, func(t time.Time) {
+			if err := e.localCache.Delete(id); err != nil {
+				e.logger.Errorf("failed to delay delete in local cache, id: %d, err: %s", id, err.Error())
+			}
+		})
+	}
+
+	if e.remoteCache != nil {
+		if err := e.remoteCache.Set(id, emptyPlaceholder); err != nil {
+			e.logger.Errorf("set remote cache with not found failed, id: %d, err: %s", id, err.Error())
+			return
+		}
+
+		e.twp.AddTask(e.notFoundExpired, 1, func(t time.Time) {
+			if err := e.remoteCache.Delete(id); err != nil {
+				e.logger.Errorf("failed to delay delete in remote cache, id: %d, err: %s", id, err.Error())
+			}
+		})
+	}
+}
+
+func (e *entity) setCache(id uint64, bs []byte) {
+	if e.localCache != nil {
+		if err := e.localCache.Set(id, bs); err != nil {
+			e.logger.Errorf("set local cache failed, id: %d, err: %s", id, err.Error())
+		}
+	}
+
+	if e.remoteCache != nil {
+		if err := e.remoteCache.Set(id, bs); err != nil {
+			e.logger.Errorf("set remote cache failed, id: %d, err: %s", id, err.Error())
+		}
+	}
 }
 
 // doubleDeleteCache 缓存双删
-func (em *entityManager) doubleDeleteCache(id uint64) {
-	// 立即从缓存中删除
-	if err := em.cache.Delete(id); err != nil && err != em.cache.ErrNotFound() {
-		em.logger.Errorf("failed to delete in cache, id: %d, err: %s", id, err.Error())
-	}
-	// 延迟从缓存中删除
-	em.twp.AddTask(2*time.Second, 1, func(t time.Time) {
-		if err := em.cache.Delete(id); err != nil && err != em.cache.ErrNotFound() {
-			em.logger.Errorf("failed to delay delete in cache, id: %d, err: %s", id, err.Error())
+func (e *entity) doubleDeleteCache(id uint64) {
+	if e.localCache != nil {
+		// 立即从缓存中删除
+		if err := e.localCache.Delete(id); err != nil && err != e.localCache.ErrNotFound() {
+			e.logger.Errorf("failed to delete in local cache, id: %d, err: %s", id, err.Error())
 		}
-	})
+		// 延迟从缓存中删除
+		e.twp.AddTask(2*time.Second, 1, func(t time.Time) {
+			if err := e.localCache.Delete(id); err != nil && err != e.localCache.ErrNotFound() {
+				e.logger.Errorf("failed to delay delete in local cache, id: %d, err: %s", id, err.Error())
+			}
+		})
+	}
+
+	if e.remoteCache != nil {
+		// 立即从缓存中删除
+		if err := e.remoteCache.Delete(id); err != nil && err != e.remoteCache.ErrNotFound() {
+			e.logger.Errorf("failed to delete in remote cache, id: %d, err: %s", id, err.Error())
+		}
+		// 延迟从缓存中删除
+		e.twp.AddTask(2*time.Second, 1, func(t time.Time) {
+			if err := e.remoteCache.Delete(id); err != nil && err != e.remoteCache.ErrNotFound() {
+				e.logger.Errorf("failed to delay delete in remote cache, id: %d, err: %s", id, err.Error())
+			}
+		})
+	}
+}
+
+func genSingleFlightKey(id uint64) string {
+	return strconv.FormatUint(id, 10)
+}
+
+// func genSingleFlightKeyMulti(id ...uint64) string {
+// 	// TODO genSingleFlightKeyMulti
+// 	return ""
+// }
+
+// getIdIndex 整理 id
+// [1001,1003,1005] -> {1001:0, 1003:2, 1005:3}
+func getIdIndex(ids ...uint64) map[uint64]int {
+	idIndexs := make(map[uint64]int, len(ids))
+
+	for i, id := range ids {
+		idIndexs[id] = i
+	}
+
+	return idIndexs
+}
+
+func (e *entity) getMultiFromCache(cache WrapCache, result *Result, ids ...uint64) []uint64 {
+	vals, _ := cache.MGet(ids...)
+
+	missIds := []uint64{}
+	for _, v := range vals {
+		idx := result.IDIndexs[v.ID]
+		if v.Err == nil && len(v.Val) > 0 {
+			result.Vals[idx] = v.Val
+		} else {
+			if v.Err != nil {
+				result.Errs[idx] = v.Err
+			}
+
+			missIds = append(missIds, v.ID)
+		}
+	}
+
+	return missIds
 }

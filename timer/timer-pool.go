@@ -18,6 +18,10 @@ type TimerWheelPool struct {
 }
 
 // NewPool 创建一个时间轮池
+//
+// poolsize: 时间轮个数
+// slotNum: 每个时间论多少个槽
+// interval: 时间轮检测间隔
 func NewPool(poolsize int, interval time.Duration, slotNum int) *TimerWheelPool {
 	poolsize = zeroutils.F2(poolsize)
 

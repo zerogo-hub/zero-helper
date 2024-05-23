@@ -1,16 +1,17 @@
 package main
 
 import (
-	"log"
-	"os"
-	"os/signal"
-	"syscall"
+	"errors"
 	"time"
 
-	zerocodecjson "github.com/zerogo-hub/zero-helper/codec/json"
+	zerocmsgpack "github.com/zerogo-hub/zero-helper/codec/msgpack"
 	zerodatabase "github.com/zerogo-hub/zero-helper/database"
 	zeroentity "github.com/zerogo-hub/zero-helper/entity"
+
+	zeroentitycache "github.com/zerogo-hub/zero-helper/entity/cache"
+	zeroentitydb "github.com/zerogo-hub/zero-helper/entity/db"
 	zerologger "github.com/zerogo-hub/zero-helper/logger"
+	zerorandom "github.com/zerogo-hub/zero-helper/random"
 )
 
 type Account struct {
@@ -26,9 +27,9 @@ func main() {
 	logger := zerologger.NewSampleLogger()
 
 	// 数据库
-	db := zerodatabase.NewDatabase(
+	db := zerodatabase.New(
 		zerodatabase.WithUsername("root"),
-		zerodatabase.WithPassword("sNoJO6iqbBudAxUt"),
+		zerodatabase.WithPassword("123456"),
 		zerodatabase.WithHost("127.0.0.1"),
 		zerodatabase.WithPort(3306),
 		zerodatabase.WithDBName("test"),
@@ -37,49 +38,34 @@ func main() {
 		logger.Fatalf("open db failed, err: %s", err.Error())
 		return
 	}
-
 	testReady(db)
 
-	em := zeroentity.NewManager(
-		zeroentity.NewWrapDB(db),
-		zeroentity.NewWrapCache(10*time.Minute),
-		zeroentity.NewStat("example", logger),
+	// 数据统计
+	st := zeroentity.NewStat("example", func(localHit, localMiss, remoteHit, remoteMiss, dbFails, customFails uint64) {
+		logger.Infof("cache: %s, localHit: %d, localMiss: %d, remoteHit: %d, remoteMiss: %d, db_fails: %d, custom_fails: %d",
+			"example", localHit, localMiss, remoteHit, remoteMiss, dbFails, customFails)
+	})
+
+	// 创建实例管理器
+	e := zeroentity.New(
+		st,
 		logger,
-		zerocodecjson.NewJSONCodec(),
+		zerocmsgpack.New(),
 	)
+	e.WithReadDB(zeroentitydb.NewGormReadF2(db)...).WithWriteDB(zeroentitydb.NewGormWrite(db))
+	e.WithLocalCache(zeroentitycache.NewBigCache(10 * time.Minute))
+	e.WithTimeout(3 * time.Minute)
+	e.Build()
 
-	var account Account
-
-	// 查找一个不存在的数据
-	_ = em.Get(3, &account)
-	_ = em.Get(3, &account)
-
-	if err := em.Get(1, &account); err != nil {
-		logger.Errorf("get account failed, err: %s", err.Error())
+	// 测试
+	testQueryNotFound(e)
+	account, err := testQueryExist(e, logger)
+	if err != nil {
 		return
 	}
-	if err := em.Get(1, &account); err != nil {
-		logger.Errorf("get account failed, err: %s", err.Error())
+	if err := testUpdate(e, logger, account); err != nil {
 		return
 	}
-
-	account.Age = 18
-	if err := em.Update(1, account); err != nil {
-		logger.Errorf("update account failed, err: %s", err.Error())
-		return
-	}
-
-	var account2 Account
-	if err := em.Get(1, &account2); err != nil {
-		logger.Errorf("get account2 failed, err: %s", err.Error())
-		return
-	}
-	if account2.Age != 18 {
-		logger.Errorf("get account2.age failed, age: %d", account2.Age)
-		return
-	}
-
-	waitSignal()
 }
 
 func testReady(database zerodatabase.Database) {
@@ -88,26 +74,68 @@ func testReady(database zerodatabase.Database) {
 		return
 	}
 
+	account := Account{UUID: 1}
+	db.First(&account)
+	if account.CreatedAt > 0 {
+		return
+	}
+
 	db.Create(&Account{
 		UUID:     1,
-		Username: "zero",
+		Username: "zero1",
 		Password: "e10adc3949ba59abbe56e057f20f883e",
-		Age:      15,
+		Age:      12,
+	})
+	db.Create(&Account{
+		UUID:     2,
+		Username: "zero2",
+		Password: "e10adc3949ba59abbe56e057f20f883e",
+		Age:      18,
 	})
 }
 
-// waitSignal 监听信号
-func waitSignal() {
-	// ctrl + c 或者 kill
-	sigs := []os.Signal{syscall.SIGINT, syscall.SIGTERM}
+func testQueryNotFound(e zeroentity.Entity) {
+	var account Account
+	// 查找一个不存在的数据，第一次查找不存在，设置短期缓存
+	_ = e.Get(&account, 3)
+	// 查找一个不存在的数据，第二次从缓存中获取
+	_ = e.Get(&account, 3)
+}
 
-	ch := make(chan os.Signal, 1)
+func testQueryExist(e zeroentity.Entity, logger zerologger.Logger) (*Account, error) {
+	// 查找一个已存在的数据，第一次从数据库中获取
+	var account Account
 
-	signal.Notify(ch, sigs...)
+	if err := e.Get(&account, 1); err != nil {
+		logger.Errorf("get account failed, err: %s", err.Error())
+		return nil, err
+	}
+	// 查找一个已存在的数据，第二次从缓存中获取
+	if err := e.Get(&account, 1); err != nil {
+		logger.Errorf("get account failed, err: %s", err.Error())
+		return nil, err
+	}
 
-	sig := <-ch
+	return &account, nil
+}
 
-	signal.Stop(ch)
+func testUpdate(e zeroentity.Entity, logger zerologger.Logger, account *Account) error {
+	newAge := int16(zerorandom.Int(18, 100))
+	account.Age = newAge
+	if err := e.Update(account, 1); err != nil {
+		logger.Errorf("update account failed, err: %s", err.Error())
+		return err
+	}
 
-	log.Println(sig)
+	var account2 Account
+	if err := e.Get(&account2, 1); err != nil {
+		logger.Errorf("get account2 failed, err: %s", err.Error())
+		return err
+	}
+	if account2.Age != newAge {
+		logger.Errorf("get account2.age failed, age: %d", account2.Age)
+		return errors.New("invalid age after update")
+	}
+
+	return nil
 }

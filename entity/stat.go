@@ -3,46 +3,72 @@ package entity
 import (
 	"sync/atomic"
 	"time"
-
-	zerologger "github.com/zerogo-hub/zero-helper/logger"
 )
+
+// StatHandler 统计处理函数
+type StatHandler func(localHit, localMiss, remoteHit, remoteMiss, dbFails, customFails uint64)
 
 // Stat 统计
 type Stat struct {
 	Name string
 
-	// QueryHit 查询缓存命中次数
-	QueryHit uint64
-	// QueryMiss 查询缓存未命中次数
-	QueryMiss uint64
+	// localCacheHit 本地缓存命中次数
+	localCacheHit uint64
+	// localCacheMiss 本地缓存未命中次数
+	localCacheMiss uint64
 
-	// DBFails 数据库查询失败次数
-	DBFails uint64
+	// remoteCacheHit 查询远端缓存命中次数
+	remoteCacheHit uint64
+	// remoteCacheMiss 查询远端缓存未命中次数
+	remoteCacheMiss uint64
 
-	logger zerologger.Logger
+	// dbFail 数据库查询失败次数
+	dbFail uint64
+
+	// customHandlerFail 自定义查询失败次数
+	customHandlerFail uint64
+
+	handler StatHandler
 }
 
 // NewStat 创建一个统计对象
 
-func NewStat(name string, logger zerologger.Logger) *Stat {
-	st := &Stat{Name: name, logger: logger}
-	go st.loop()
+func NewStat(name string, handler StatHandler) *Stat {
+	st := &Stat{Name: name, handler: handler}
+	if handler != nil {
+		go st.loop()
+	}
 	return st
 }
 
-// IncrementQueryHit 增加查询缓存命中次数
-func (st *Stat) IncrementQueryHit() {
-	atomic.AddUint64(&st.QueryHit, 1)
+// incLocalCacheHit 增加本地缓存命中次数
+func (st *Stat) incLocalCacheHit() {
+	atomic.AddUint64(&st.localCacheHit, 1)
 }
 
-// IncrementQueryMiss 增加查询未命中次数
-func (st *Stat) IncrementQueryMiss() {
-	atomic.AddUint64(&st.QueryMiss, 1)
+// incLocalCacheMiss 增加本地缓存未命中次数
+func (st *Stat) incLocalCacheMiss() {
+	atomic.AddUint64(&st.localCacheMiss, 1)
 }
 
-// IncrementDbFails 增加数据库查询失败次数
-func (st *Stat) IncrementDBFails() {
-	atomic.AddUint64(&st.DBFails, 1)
+// incRemoteCacheHit 增加远端缓存命中次数
+func (st *Stat) incRemoteCacheHit() {
+	atomic.AddUint64(&st.remoteCacheHit, 1)
+}
+
+// incRemoteCacheMiss 增加远端缓存查询未命中次数
+func (st *Stat) incRemoteCacheMiss() {
+	atomic.AddUint64(&st.remoteCacheMiss, 1)
+}
+
+// incDBFail 增加数据库查询失败次数
+func (st *Stat) incDBFail() {
+	atomic.AddUint64(&st.dbFail, 1)
+}
+
+// incCustomHandlerFail 增加自定义查询失败次数
+func (st *Stat) incCustomHandlerFail() {
+	atomic.AddUint64(&st.customHandlerFail, 1)
 }
 
 // loop 进行一些统计计算
@@ -51,13 +77,16 @@ func (st *Stat) loop() {
 	defer ticker.Stop()
 
 	for range ticker.C {
-		// 查询
-		queryHit := atomic.SwapUint64(&st.QueryHit, 0)
-		queryMiss := atomic.SwapUint64(&st.QueryMiss, 0)
+		localHit := atomic.SwapUint64(&st.localCacheHit, 0)
+		localMiss := atomic.SwapUint64(&st.localCacheMiss, 0)
 
-		dbf := atomic.SwapUint64(&st.DBFails, 0)
+		remoteHit := atomic.SwapUint64(&st.remoteCacheHit, 0)
+		remoteMiss := atomic.SwapUint64(&st.remoteCacheMiss, 0)
 
-		st.logger.Infof("cache: %s, queryHit: %d, queryMiss: %d, db_fails: %d",
-			st.Name, queryHit, queryMiss, dbf)
+		dbf := atomic.SwapUint64(&st.dbFail, 0)
+
+		chf := atomic.SwapUint64(&st.customHandlerFail, 0)
+
+		st.handler(localHit, localMiss, remoteHit, remoteMiss, dbf, chf)
 	}
 }
