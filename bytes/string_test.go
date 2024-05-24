@@ -26,6 +26,16 @@ func TestStringToBytes(t *testing.T) {
 	}
 }
 
+func TestSliceByteToString_InvalidCharacters(t *testing.T) {
+	input := []byte{72, 101, 108, 108, 111, 255} // Contains an invalid character (255)
+	expected := "Hello\xFF"                      // Expected string representation with the invalid character
+	result := zerobytes.SliceByteToString(input)
+
+	if result != expected {
+		t.Errorf("Expected: %s, but got: %s", expected, result)
+	}
+}
+
 func TestCharLower(t *testing.T) {
 	if zerobytes.CharLower('A') != 'a' {
 		t.Error("CharLower A error")

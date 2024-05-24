@@ -1,29 +1,19 @@
 package bytes
 
 import (
-	"reflect"
 	"strings"
 	"unsafe"
 )
 
-// StringToByte 字符串转 []byte，转出的 []byte 可读不可写
-//
-// 来源: kitex/pkg/utils/byte2str.go
-//
-// 来源: https://www.toutiao.com/a6918883127146349067/
+// StringToByte 字符串转 []byte，避免 []byte(str) 带来的数据复制，转出的数据不可写
 func StringToBytes(s string) []byte {
-	p := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&s)).Data)
-	var b []byte
-	hdr := (*reflect.SliceHeader)(unsafe.Pointer(&b))
-	hdr.Data = uintptr(p)
-	hdr.Cap = len(s)
-	hdr.Len = len(s)
-	return b
+	// return unsafe.Slice(unsafe.StringData(s), len(s))
+	return *(*[]byte)(unsafe.Pointer(&s))
 }
 
-// SliceByteToString ..
-// 来源: kitex/pkg/utils/byte2str.go
+// SliceByteToString []byte 转字符串，避免 string([]byte) 带来的数据复制
 func SliceByteToString(b []byte) string {
+	// return unsafe.String(unsafe.SliceData(b), len(b))
 	return *(*string)(unsafe.Pointer(&b))
 }
 

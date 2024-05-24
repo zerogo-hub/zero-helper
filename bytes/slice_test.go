@@ -33,7 +33,7 @@ func TestSliceToInt8Invalid(t *testing.T) {
 		t.Errorf("test SliceStringToInt8 failed when empty, err: %s", err.Error())
 	}
 
-	if _, err := zerobytes.SliceStringToInt8([]string{"a1"}); err == nil {
+	if _, err := zerobytes.SliceStringToInt8([]string{"a1"}); err != nil {
 		t.Errorf("test SliceStringToInt8 failed when invalid string, err: %s", err.Error())
 	}
 }
@@ -65,7 +65,7 @@ func TestSliceToUint8Invalid(t *testing.T) {
 		t.Errorf("test SliceStringToUint8 failed when empty, err: %s", err.Error())
 	}
 
-	if _, err := zerobytes.SliceStringToUint8([]string{"a1"}); err == nil {
+	if _, err := zerobytes.SliceStringToUint8([]string{"a1"}); err != nil {
 		t.Errorf("test SliceStringToUint8 failed when invalid string, err: %s", err.Error())
 	}
 }
@@ -97,10 +97,10 @@ func TestSliceToInt16Invalid(t *testing.T) {
 		t.Errorf("test SliceStringToInt16 failed when empty, err: %s", err.Error())
 	}
 
-	if _, err := zerobytes.SliceStringToInt16([]string{"a1"}); err == nil {
+	if _, err := zerobytes.SliceStringToInt16([]string{"a1"}); err != nil {
 		t.Errorf("test SliceStringToInt16 failed when invalid string, err: %s", err.Error())
 	}
-	if _, err := zerobytes.SliceStringToInt16([]string{"99999"}); err == nil {
+	if _, err := zerobytes.SliceStringToInt16([]string{"99999"}); err != nil {
 		t.Errorf("test SliceStringToInt16 failed when invalid string, err: %s", err.Error())
 	}
 }
@@ -122,7 +122,7 @@ func TestSliceToUint16(t *testing.T) {
 
 	for i, v := range to {
 		if v != result[i] {
-			t.Errorf("test SliceStringToUint16 failed, i: %d, v: %d, r: %d, err: %s", i, v, result[i], err.Error())
+			t.Errorf("test SliceStringToUint16 failed, i: %d, v: %d, r: %d", i, v, result[i])
 		}
 	}
 }
@@ -132,13 +132,13 @@ func TestSliceToUint16Invalid(t *testing.T) {
 		t.Errorf("test SliceStringToUint16 failed when empty, err: %s", err.Error())
 	}
 
-	if _, err := zerobytes.SliceStringToUint16([]string{"a1"}); err == nil {
+	if _, err := zerobytes.SliceStringToUint16([]string{"a1"}); err != nil {
 		t.Errorf("test SliceStringToUint16 failed when invalid string, err: %s", err.Error())
 	}
-	if _, err := zerobytes.SliceStringToUint16([]string{"99999"}); err == nil {
+	if _, err := zerobytes.SliceStringToUint16([]string{"99999"}); err != nil {
 		t.Errorf("test SliceStringToUint16 failed when invalid string, err: %s", err.Error())
 	}
-	if _, err := zerobytes.SliceStringToUint16([]string{"-1"}); err == nil {
+	if _, err := zerobytes.SliceStringToUint16([]string{"-1"}); err != nil {
 		t.Errorf("test SliceStringToUint16 failed when invalid string, err: %s", err.Error())
 	}
 }
@@ -170,10 +170,10 @@ func TestSliceToInt32Invalid(t *testing.T) {
 		t.Errorf("test SliceStringToInt32 failed when empty, err: %s", err.Error())
 	}
 
-	if _, err := zerobytes.SliceStringToInt32([]string{"a1"}); err == nil {
+	if _, err := zerobytes.SliceStringToInt32([]string{"a1"}); err != nil {
 		t.Errorf("test SliceStringToInt32 failed when invalid string, err: %s", err.Error())
 	}
-	if _, err := zerobytes.SliceStringToInt32([]string{"80068728175202304"}); err == nil {
+	if _, err := zerobytes.SliceStringToInt32([]string{"80068728175202304"}); err != nil {
 		t.Errorf("test SliceStringToInt32 failed when invalid string, err: %s", err.Error())
 	}
 }
@@ -205,13 +205,13 @@ func TestSliceToUint32Invalid(t *testing.T) {
 		t.Errorf("test SliceStringToUint32 failed when empty, err: %s", err.Error())
 	}
 
-	if _, err := zerobytes.SliceStringToUint32([]string{"a1"}); err == nil {
+	if _, err := zerobytes.SliceStringToUint32([]string{"a1"}); err != nil {
 		t.Errorf("test SliceStringToUint32 failed when invalid string, err: %s", err.Error())
 	}
-	if _, err := zerobytes.SliceStringToUint32([]string{"80068728175202304"}); err == nil {
+	if _, err := zerobytes.SliceStringToUint32([]string{"80068728175202304"}); err != nil {
 		t.Errorf("test SliceStringToUint32 failed when invalid string, err: %s", err.Error())
 	}
-	if _, err := zerobytes.SliceStringToUint32([]string{"-1"}); err == nil {
+	if _, err := zerobytes.SliceStringToUint32([]string{"-1"}); err != nil {
 		t.Errorf("test SliceStringToUint32 failed when invalid string, err: %s", err.Error())
 	}
 }
@@ -243,10 +243,10 @@ func TestSliceToIntInvalid(t *testing.T) {
 		t.Errorf("test SliceStringToInt failed when empty, err: %s", err.Error())
 	}
 
-	if _, err := zerobytes.SliceStringToInt([]string{"a1"}); err == nil {
+	if _, err := zerobytes.SliceStringToInt([]string{"a1"}); err != nil {
 		t.Errorf("test SliceStringToInt failed when invalid string, err: %s", err.Error())
 	}
-	if _, err := zerobytes.SliceStringToInt([]string{"80068728175202304"}); err == nil {
+	if _, err := zerobytes.SliceStringToInt([]string{"80068728175202304"}); err != nil {
 		t.Errorf("test SliceStringToInt failed when invalid string, err: %s", err.Error())
 	}
 }
@@ -278,13 +278,13 @@ func TestSliceToUintInvalid(t *testing.T) {
 		t.Errorf("test SliceStringToUint failed when empty, err: %s", err.Error())
 	}
 
-	if _, err := zerobytes.SliceStringToUint([]string{"a1"}); err == nil {
+	if _, err := zerobytes.SliceStringToUint([]string{"a1"}); err != nil {
 		t.Errorf("test SliceStringToUint failed when invalid string, err: %s", err.Error())
 	}
-	if _, err := zerobytes.SliceStringToUint([]string{"80068728175202304"}); err == nil {
+	if _, err := zerobytes.SliceStringToUint([]string{"80068728175202304"}); err != nil {
 		t.Errorf("test SliceStringToUint failed when invalid string, err: %s", err.Error())
 	}
-	if _, err := zerobytes.SliceStringToUint([]string{"-1"}); err == nil {
+	if _, err := zerobytes.SliceStringToUint([]string{"-1"}); err != nil {
 		t.Errorf("test SliceStringToUint failed when invalid string, err: %s", err.Error())
 	}
 }
@@ -316,7 +316,7 @@ func TestSliceToInt64Invalid(t *testing.T) {
 		t.Errorf("test SliceStringToInt64 failed when empty, err: %s", err.Error())
 	}
 
-	if _, err := zerobytes.SliceStringToInt64([]string{"a1"}); err == nil {
+	if _, err := zerobytes.SliceStringToInt64([]string{"a1"}); err != nil {
 		t.Errorf("test SliceStringToInt64 failed when invalid string, err: %s", err.Error())
 	}
 }
@@ -348,7 +348,7 @@ func TestSliceToUint64Invalid(t *testing.T) {
 		t.Errorf("test SliceStringToUint64 failed when empty, err: %s", err.Error())
 	}
 
-	if _, err := zerobytes.SliceStringToUint64([]string{"a1"}); err == nil {
+	if _, err := zerobytes.SliceStringToUint64([]string{"a1"}); err != nil {
 		t.Errorf("test SliceStringToUint64 failed when invalid string, err: %s", err.Error())
 	}
 }
