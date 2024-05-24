@@ -39,4 +39,10 @@ func TestCuckoo(t *testing.T) {
 	if c.ContainsString("hello") {
 		t.Error("test ContainsString failed after ClearAll")
 	}
+
+	c.AddString("abcdef")
+	c.Del([]byte("abcdef"))
+	if c.ContainsString("abcdef") {
+		t.Error("test Del failed")
+	}
 }
