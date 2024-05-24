@@ -3,10 +3,12 @@ package entity
 import (
 	"bytes"
 	"strconv"
+	"sync"
 	"time"
 
 	"golang.org/x/sync/singleflight"
 
+	zerobytes "github.com/zerogo-hub/zero-helper/bytes"
 	zerocodec "github.com/zerogo-hub/zero-helper/codec"
 	zerologger "github.com/zerogo-hub/zero-helper/logger"
 	zerotimer "github.com/zerogo-hub/zero-helper/timer"
@@ -49,7 +51,7 @@ type entity struct {
 
 	logger zerologger.Logger
 	g      singleflight.Group
-	// gMulti singleflight.Group
+	gMulti singleflight.Group
 }
 
 // New 创建一个实体管理器
@@ -90,51 +92,84 @@ func (e *entity) MGet(out interface{}, ids ...uint64) (*Result, error) {
 		return &Result{}, nil
 	}
 
-	result := &Result{
-		IDIndexs: getIdIndex(ids...),
-		Vals:     make(map[int][]byte, len(ids)),
-		Errs:     make(map[int]error, len(ids)),
-	}
+	key := genSingleFlightKeyMulti(ids...)
 
-	missIds := make([]uint64, 0, len(ids))
-	copy(missIds, ids)
-
-	if e.localCache != nil {
-		missIds = e.getMultiFromCache(e.localCache, result, ids...)
-		if len(missIds) == 0 {
-			// 全部命中缓存
-			return result, nil
+	ch := e.gMulti.DoChan(key, func() (interface{}, error) {
+		result := &Result{
+			IDIndexs: buildIdIndex(ids...),
+			Vals:     make(map[int][]byte, len(ids)),
+			Errs:     make(map[int]error, len(ids)),
 		}
-	}
 
-	if e.remoteCache != nil {
-		missIds = e.getMultiFromCache(e.remoteCache, result, missIds...)
-		if len(missIds) == 0 {
-			// 全部命中缓存
-			return result, nil
+		missIds := make([]uint64, 0, len(ids))
+		copy(missIds, ids)
+
+		if e.localCache != nil {
+			missIds = e.getMultiFromCache(e.localCache, result, ids...)
+			if len(missIds) == 0 {
+				// 全部命中缓存
+				if e.st != nil {
+					e.st.incLocalCacheHit()
+				}
+				return result, nil
+			}
+
+			// 存在未命中
+			if e.st != nil {
+				e.st.incLocalCacheMiss()
+			}
 		}
+
+		if e.remoteCache != nil {
+			missIds = e.getMultiFromCache(e.remoteCache, result, missIds...)
+			if len(missIds) == 0 {
+				// 全部命中缓存
+				if e.st != nil {
+					e.st.incRemoteCacheHit()
+				}
+				return result, nil
+			}
+
+			// 存在未命中
+			if e.st != nil {
+				e.st.incRemoteCacheMiss()
+			}
+		}
+
+		// 以下查找出来的结果会存入缓存中
+
+		missIdsNotCache := make([]uint64, 0, len(missIds))
+		copy(missIdsNotCache, missIds)
+
+		if len(e.readDBs) > 0 {
+			// err :=
+			// if err == nil {
+			// 	missIds := []uint64{}
+
+			// }
+		}
+
+		if e.query != nil {
+			err := e.query(out, missIds...)
+			if err == nil {
+				// missIds := []uint64{}
+
+			}
+		}
+
+		return nil, nil
+	})
+
+	select {
+	case <-time.After(e.timeout):
+		return nil, ErrTimeout
+	case ret := <-ch:
+		if ret.Err != nil {
+			return nil, ret.Err
+		}
+		// return e.codec.Unmarshal(ret.Val.([]byte), out)
+		return nil, nil
 	}
-
-	missIdsNotCache := make([]uint64, 0, len(missIds))
-	copy(missIdsNotCache, missIds)
-
-	// if e.db != nil {
-	// 	err := e.db.MGet(out, missIds...)
-	// 	if err == nil {
-	// 		missIds := []uint64{}
-
-	// 	}
-	// }
-
-	// if e.multiCustomHandler != nil {
-	// 	err := e.multiCustomHandler(out, missIds...)
-	// 	if err == nil {
-	// 		missIds := []uint64{}
-
-	// 	}
-	// }
-
-	return nil, nil
 }
 
 // Update 更新
@@ -333,6 +368,22 @@ func (e *entity) readDB(id uint64) WrapReadDB {
 	return e.readDBs[id%uint64(len(e.readDBs))]
 }
 
+func (e *entity) readDBWithKey(key string) WrapReadDB {
+	count := len(e.readDBs)
+	if count == 1 {
+		return e.readDBs[0]
+	} else if count == 0 {
+		return nil
+	}
+
+	v := zeroutils.ToUint64(key)
+
+	if e.readDBsMatchF2 {
+		return e.readDBs[v&uint64((len(e.readDBs))-1)]
+	}
+	return e.readDBs[v%uint64(len(e.readDBs))]
+}
+
 func (e *entity) getFromLocalCache(id uint64) ([]byte, error) {
 	data, err := e.localCache.Get(id)
 	if err != nil {
@@ -465,14 +516,25 @@ func genSingleFlightKey(id uint64) string {
 	return strconv.FormatUint(id, 10)
 }
 
-// func genSingleFlightKeyMulti(id ...uint64) string {
-// 	// TODO genSingleFlightKeyMulti
-// 	return ""
-// }
+func genSingleFlightKeyMulti(ids ...uint64) string {
+	if len(ids) == 1 {
+		return strconv.FormatUint(ids[0], 10)
+	}
 
-// getIdIndex 整理 id
-// [1001,1003,1005] -> {1001:0, 1003:2, 1005:3}
-func getIdIndex(ids ...uint64) map[uint64]int {
+	buf := buffer()
+	defer releaseBuffer(buf)
+
+	// 同一时间传入的 ids 都是相同顺序的
+	for _, id := range ids {
+		buf.Write(zerobytes.PutUint64(id))
+	}
+
+	return buf.String()
+}
+
+// buildIdIndex 整理 id
+// [1001,1003,1005] -> {1001:0, 1003:1, 1005:2}
+func buildIdIndex(ids ...uint64) map[uint64]int {
 	idIndexs := make(map[uint64]int, len(ids))
 
 	for i, id := range ids {
@@ -500,4 +562,25 @@ func (e *entity) getMultiFromCache(cache WrapCache, result *Result, ids ...uint6
 	}
 
 	return missIds
+}
+
+var bufferPool *sync.Pool
+
+func init() {
+	bufferPool = &sync.Pool{}
+	bufferPool.New = func() interface{} {
+		return &bytes.Buffer{}
+	}
+}
+
+// buffer 从池中获取 buffer
+func buffer() *bytes.Buffer {
+	buff := bufferPool.Get().(*bytes.Buffer)
+	buff.Reset()
+	return buff
+}
+
+// releaseBuffer 将 buff 放入池中
+func releaseBuffer(buff *bytes.Buffer) {
+	bufferPool.Put(buff)
 }

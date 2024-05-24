@@ -26,22 +26,13 @@ var (
 )
 
 // QueryHandler 查询函数
-type QueryHandler func(out interface{}, id uint64) error
-
-// QueryMultiHandler 批量查询函数
-type QueryMultiHandler func(out interface{}, ids ...uint64) error
+type QueryHandler func(out interface{}, ids ...uint64) error
 
 // UpdateHandler 更新函数
-type UpdateHandler func(out interface{}, id uint64) error
-
-// UpdateMultiHandler 批量更新函数
-type UpdateMultiHandler func(out interface{}, ids ...uint64) error
+type UpdateHandler func(out interface{}, id ...uint64) error
 
 // DeleteHandler 删除函数
-type DeleteHandler func(out interface{}, id uint64) error
-
-// DeleteMultiHandler 批量删除函数
-type DeleteMultiHandler func(out interface{}, ids ...uint64) error
+type DeleteHandler func(out interface{}, id ...uint64) error
 
 // Entity 实体
 type Entity interface {

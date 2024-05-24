@@ -12,8 +12,9 @@ func TestF2(t *testing.T) {
 	r3 := zeroutils.F2(3)
 	r4 := zeroutils.F2(4)
 	r5 := zeroutils.F2(5)
+	r6 := zeroutils.F2(1023)
 
-	if r1 != 1 || r2 != 2 || r3 != 4 || r4 != 4 || r5 != 8 {
+	if r1 != 1 || r2 != 2 || r3 != 4 || r4 != 4 || r5 != 8 || r6 != 1024 {
 		t.Fatal("test F2 failed")
 	}
 }
