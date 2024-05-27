@@ -78,6 +78,8 @@ type Get interface {
 	// CF64 获取配置，结果转为 float64
 	CF64(key string) (float64, error)
 
+	D(key, val string) string
+
 	// DB 获取配置，结果转为 bool
 	DB(key string, def bool) bool
 
@@ -119,7 +121,7 @@ func NewConfig() Config {
 
 // LoadJSON 从 bytes 数据中读取 JSON 配置
 func (c *config) LoadJSON(bytes []byte) error {
-	if bytes == nil {
+	if len(bytes) == 0 {
 		return errors.New("bytes cannot be empty")
 	}
 
@@ -134,7 +136,7 @@ func (c *config) LoadJSON(bytes []byte) error {
 
 // LoadTOML 从 bytes 数据中读取 TOML 配置
 func (c *config) LoadTOML(bytes []byte) error {
-	if bytes == nil {
+	if len(bytes) == 0 {
 		return errors.New("bytes cannot be empty")
 	}
 
@@ -149,7 +151,7 @@ func (c *config) LoadTOML(bytes []byte) error {
 
 // LoadYAML 从 bytes 数据中读取 YAML 配置
 func (c *config) LoadYAML(bytes []byte) error {
-	if bytes == nil {
+	if len(bytes) == 0 {
 		return errors.New("bytes cannot be empty")
 	}
 
@@ -303,7 +305,7 @@ func (c *config) CF64(key string) (float64, error) {
 	return f64, nil
 }
 
-// D 获取配置
+// D 获取配置，有默认配置
 func (c *config) D(key, def string) string {
 	value, err := c.C(key)
 	if err == nil {

@@ -101,3 +101,17 @@ func TestInvalidToken(t *testing.T) {
 		t.Fatal("verify invalid token failed")
 	}
 }
+
+func TestTokenValidationFailsWhenExpFieldMissing(t *testing.T) {
+	jwt := zerojwt.NewJWT()
+	key := []byte("secret")
+	token, _ := jwt.Token(map[string]interface{}{
+		"sub":  "1234567890",
+		"name": "John Doe",
+	})
+
+	_, err := jwt.VerifyWithKey(key, token)
+	if err == nil {
+		t.Error("Expected error due to missing 'exp' field in token")
+	}
+}

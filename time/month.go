@@ -24,7 +24,7 @@ func MonthZero(num int) int64 {
 	// 当前月
 	current := time.Date(year, month, 1, 0, 0, 0, 0, time.Local)
 	if num == 0 {
-		current.Unix()
+		return current.Unix()
 	}
 
 	t := current.AddDate(0, num, 0)

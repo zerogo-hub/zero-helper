@@ -404,7 +404,7 @@ func AesCBCEncode(key, iv, plaintext []byte) ([]byte, error) {
 // plaintextHex, _ := AesCBCDecodeHex(key, iv, ciphertextHex)
 //
 // output:
-// // plaintextHex => abcdefg
+// plaintextHex => abcdefg
 func AesCBCDecodeHex(key, iv []byte, ciphertext string) ([]byte, error) {
 	result, err := hex.DecodeString(ciphertext)
 	if err != nil {
