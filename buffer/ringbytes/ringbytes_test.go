@@ -79,6 +79,28 @@ func TestRingBytesUnlock_Write(t *testing.T) {
 	if r.Len() != 4 || r.Free() != 1 {
 		t.Error("Unexcepted len and free")
 	}
+
+	// Test case 3
+	r.Reset()
+
+	r.Write([]byte{1, 2, 3, 4, 5})
+	r.Skip(2)
+	r.Write([]byte{6})
+	d3, _ := r.Peek(4)
+	if !reflect.DeepEqual(d3, []byte{3, 4, 5, 6}) {
+		t.Errorf("Exceped %+v, but got: %+v", []byte{3, 4, 5, 6}, d3)
+	}
+
+	// Test case 4
+	r.Reset()
+
+	r.Write([]byte{1, 2, 3, 4})
+	r.Skip(2)
+	r.Write([]byte{5, 6})
+	d4, _ := r.Peek(4)
+	if !reflect.DeepEqual(d4, []byte{3, 4, 5, 6}) {
+		t.Errorf("Exceped %+v, but got: %+v", []byte{3, 4, 5, 6}, d4)
+	}
 }
 
 func TestRingBytes_Len_BufferFull(t *testing.T) {
@@ -165,6 +187,10 @@ func TestRingBytes_Read_EmptyBuffer(t *testing.T) {
 	if data != nil {
 		t.Errorf("Expected nil data, got %v", data)
 	}
+
+	if _, err := r.Read(0); err != ErrInvalidLength {
+		t.Error("get invalid err when read 0")
+	}
 }
 
 func TestRingBytes_Read_InvalidLength(t *testing.T) {
@@ -189,6 +215,22 @@ func TestRingBytes_Read_SingleRead(t *testing.T) {
 	}
 	if !reflect.DeepEqual(data, expected) {
 		t.Errorf("Expected %v, got %v", expected, data)
+	}
+}
+
+func TestRingBytes_Read_Round(t *testing.T) {
+	r := New(5)
+	r.Write([]byte{1, 2, 3, 4})
+	r.Skip(3)
+	r.Write([]byte{5, 6})
+
+	d, err := r.Read(2)
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+	expected := []byte{4, 5}
+	if !reflect.DeepEqual(d, expected) {
+		t.Errorf("Expected %v, got %v", expected, d)
 	}
 }
 
@@ -305,5 +347,24 @@ func TestSkip_LargerThanRemainingData(t *testing.T) {
 				t.Errorf("expected error %v, got %v", tt.expectErr, err)
 			}
 		})
+	}
+}
+
+func TestSkip_LargeThanSize(t *testing.T) {
+	r := New(5)
+	r.Write([]byte{1, 2, 3, 4})
+	if err := r.Skip(5); err != ErrInvalidSkipSize {
+		t.Errorf("Expected ErrInvalidLength, got %v", err)
+	}
+}
+
+func TestSkip_Round(t *testing.T) {
+	r := New(5)
+	r.Write([]byte{1, 2, 3, 4, 5})
+	r.Skip(3)
+	r.Write([]byte{6, 7})
+
+	if err := r.Skip(3); err != nil {
+		t.Errorf("Expected no error, got %v", err)
 	}
 }
