@@ -10,6 +10,7 @@
 - bytes: `[]byte`相关
 - cache: 封装`redis`
 - codec: 编码与解码器
+- collections: slice, map
 - compress: 压缩与解压
 - config: 读取配置表
 - crypto: 加密与解密
