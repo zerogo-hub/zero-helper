@@ -54,7 +54,7 @@ func main() {
 	)
 	e.WithReadDB(zeroentitydb.NewGormReadF2(db)...).WithWriteDB(zeroentitydb.NewGormWrite(db))
 	e.WithLocalCache(zeroentitycache.NewBigCache(10 * time.Minute))
-	e.WithTimeout(3 * time.Minute)
+	e.WithTimeout(30 * time.Minute)
 	e.Build()
 
 	// 测试
@@ -66,6 +66,9 @@ func main() {
 	if err := testUpdate(e, logger, account); err != nil {
 		return
 	}
+
+	// 测试批量操作
+	testMulti(db, e, logger)
 }
 
 func testReady(database zerodatabase.Database) {
@@ -138,4 +141,42 @@ func testUpdate(e zeroentity.Entity, logger zerologger.Logger, account *Account)
 	}
 
 	return nil
+}
+
+func testMulti(database zerodatabase.Database, e zeroentity.Entity, logger zerologger.Logger) {
+	testMultiReady(database)
+	testMultiQuery(e, logger)
+}
+
+func testMultiReady(database zerodatabase.Database) {
+	db := database.DB()
+	if err := db.AutoMigrate(&Account{}); err != nil {
+		return
+	}
+
+	db.Create(&Account{
+		UUID:     11,
+		Username: "zero11",
+		Password: "e10adc3949ba59abbe56e057f20f883e",
+		Age:      12,
+	})
+	db.Create(&Account{
+		UUID:     12,
+		Username: "zero12",
+		Password: "e10adc3949ba59abbe56e057f20f883e",
+		Age:      18,
+	})
+}
+
+func testMultiQuery(e zeroentity.Entity, logger zerologger.Logger) {
+	var accounts []Account
+	err := e.MGet(&accounts, 11, 12)
+	if err != nil {
+		logger.Errorf("[testMultiQuery] MGet failed, err: %s", err.Error())
+		return
+	}
+
+	for _, account := range accounts {
+		logger.Infof("UUID: %d, Username %s, Age: %d", account.UUID, account.Username, account.Age)
+	}
 }

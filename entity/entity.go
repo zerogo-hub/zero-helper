@@ -2,6 +2,7 @@ package entity
 
 import (
 	"bytes"
+	"errors"
 	"strconv"
 	"sync"
 	"time"
@@ -10,6 +11,7 @@ import (
 
 	zerobytes "github.com/zerogo-hub/zero-helper/bytes"
 	zerocodec "github.com/zerogo-hub/zero-helper/codec"
+	zerocollections "github.com/zerogo-hub/zero-helper/collections"
 	zerologger "github.com/zerogo-hub/zero-helper/logger"
 	zerotimer "github.com/zerogo-hub/zero-helper/timer"
 	zeroutils "github.com/zerogo-hub/zero-helper/utils"
@@ -87,21 +89,20 @@ func (e *entity) GetWithQuery(out interface{}, id uint64, query QueryHandler) er
 }
 
 // MGet 根据主键批量获取数据
-func (e *entity) MGet(out interface{}, ids ...uint64) (*Result, error) {
+func (e *entity) MGet(out interface{}, ids ...uint64) error {
 	if len(ids) == 0 {
-		return &Result{}, nil
+		return ErrIDCantBeNull
 	}
 
 	key := genSingleFlightKeyMulti(ids...)
 
-	ch := e.gMulti.DoChan(key, func() (interface{}, error) {
+	ch := e.gMulti.DoChan(key, func() (any, error) {
 		result := &Result{
-			IDIndexs: buildIdIndex(ids...),
-			Vals:     make(map[int][]byte, len(ids)),
-			Errs:     make(map[int]error, len(ids)),
+			Vals: make([][]byte, len(ids)),
+			Errs: []error{},
 		}
 
-		missIds := make([]uint64, 0, len(ids))
+		missIds := make([]uint64, len(ids))
 		copy(missIds, ids)
 
 		if e.localCache != nil {
@@ -138,37 +139,63 @@ func (e *entity) MGet(out interface{}, ids ...uint64) (*Result, error) {
 
 		// 以下查找出来的结果会存入缓存中
 
-		missIdsNotCache := make([]uint64, 0, len(missIds))
-		copy(missIdsNotCache, missIds)
+		var loadedIDs []uint64
+		var loadedDatas []interface{}
+		var err error
 
 		if len(e.readDBs) > 0 {
-			// err :=
-			// if err == nil {
-			// 	missIds := []uint64{}
-
-			// }
+			loadedIDs, loadedDatas, err = e.readDBWithKey(key).MGet(out, missIds...)
+		} else if e.query != nil {
+			loadedIDs, loadedDatas, err = e.query(out, missIds...)
+		} else {
+			return nil, ErrNotFound
 		}
 
-		if e.query != nil {
-			err := e.query(out, missIds...)
-			if err == nil {
-				// missIds := []uint64{}
+		if err != nil {
+			return nil, err
+		}
 
+		if len(loadedIDs) != len(missIds) {
+			// 计算差集，将未搜索到的部分设计短期缓存
+			missIds = zerocollections.Difference(missIds, loadedIDs)
+			e.setMCacheWithNotFound(missIds...)
+			return nil, errors.New("some data not found")
+		}
+
+		loadedBytes := make([][]byte, 0, len(loadedIDs))
+		for _, data := range loadedDatas {
+			bs, err := e.codec.Marshal(data)
+			if err != nil {
+				return nil, err
 			}
+			loadedBytes = append(loadedBytes, bs)
 		}
 
-		return nil, nil
+		result.Vals = append(result.Vals, loadedBytes...)
+
+		// 查找成功，写入缓存
+		e.msetCache(loadedIDs, loadedBytes)
+
+		return result, nil
 	})
 
 	select {
 	case <-time.After(e.timeout):
-		return nil, ErrTimeout
+		return ErrTimeout
 	case ret := <-ch:
 		if ret.Err != nil {
-			return nil, ret.Err
+			return ret.Err
 		}
-		// return e.codec.Unmarshal(ret.Val.([]byte), out)
-		return nil, nil
+
+		result := ret.Val.(*Result)
+		if len(result.Errs) > 0 {
+			for _, err := range result.Errs {
+				e.logger.Error(err.Error())
+			}
+			return result.Errs[0]
+		}
+
+		return e.codec.Unmarshal(ret.Val.([]byte), out)
 	}
 }
 
@@ -195,7 +222,7 @@ func (e *entity) Update(model interface{}, id uint64) error {
 // Delete 删除
 func (e *entity) Delete(model interface{}, id uint64) error {
 	if e.writeDB != nil {
-		if err := e.writeDB.Delete(id, model); err != nil {
+		if err := e.writeDB.Delete(model, id); err != nil {
 			e.logger.Errorf("failed to delete in db, id: %d, err: %s", id, err.Error())
 			return err
 		}
@@ -208,6 +235,24 @@ func (e *entity) Delete(model interface{}, id uint64) error {
 	}
 
 	e.doubleDeleteCache(id)
+
+	return nil
+}
+
+// MDelete 批量删除数据库，删除缓存
+func (e *entity) MDelete(model interface{}, ids ...uint64) error {
+	if e.writeDB != nil {
+		if err := e.writeDB.MDelete(model, ids...); err != nil {
+			e.logger.Errorf("failed to multi delete in db, id: %v, err: %s", ids, err.Error())
+			return err
+		}
+	}
+
+	if e.delete != nil {
+		e.delete(model, ids...)
+	}
+
+	e.doubleMDeleteCache(ids...)
 
 	return nil
 }
@@ -300,21 +345,21 @@ func (e *entity) get(out interface{}, id uint64, query QueryHandler) error {
 
 		if query != nil {
 			// 本次单独传入的自定义查找
-			err = query(out, id)
+			_, _, err = query(out, id)
 
 			if err != nil && e.st != nil {
 				e.st.incDBFail()
 			}
 		} else if len(e.readDBs) > 0 {
 			// 默认通过主键查找
-			err = e.readDB(id).Get(id, out)
+			err = e.readDB(id).Get(out, id)
 
 			if err != nil && e.st != nil {
 				e.st.incDBFail()
 			}
 		} else if e.query != nil {
 			// 全局自定义查找
-			err = e.query(out, id)
+			_, _, err = e.query(out, id)
 
 			if err != nil && e.st != nil {
 				e.st.incCustomHandlerFail()
@@ -469,6 +514,42 @@ func (e *entity) setCacheWithNotFound(id uint64) {
 	}
 }
 
+func (e *entity) setMCacheWithNotFound(ids ...uint64) {
+	if len(ids) == 0 {
+		return
+	}
+	datas := make([][]byte, 0, len(ids))
+	for i := 0; i < len(ids); i++ {
+		datas = append(datas, emptyPlaceholder)
+	}
+
+	if e.localCache != nil {
+		if err := e.localCache.MSet(ids, datas); err != nil {
+			e.logger.Errorf("set local multi cache with not found failed, id: %v, err: %s", ids, err.Error())
+			return
+		}
+
+		e.twp.AddTask(e.notFoundExpired, 1, func(t time.Time) {
+			if err := e.localCache.MDelete(ids...); err != nil {
+				e.logger.Errorf("failed to delay multi delete in local cache, ids: %v, err: %s", ids, err.Error())
+			}
+		})
+	}
+
+	if e.remoteCache != nil {
+		if err := e.remoteCache.MSet(ids, datas); err != nil {
+			e.logger.Errorf("set remote multi cache with not found failed, id: %v, err: %s", ids, err.Error())
+			return
+		}
+
+		e.twp.AddTask(e.notFoundExpired, 1, func(t time.Time) {
+			if err := e.remoteCache.MDelete(ids...); err != nil {
+				e.logger.Errorf("failed to delay multi delete in remote cache, ids: %v, err: %s", ids, err.Error())
+			}
+		})
+	}
+}
+
 func (e *entity) setCache(id uint64, bs []byte) {
 	if e.localCache != nil {
 		if err := e.localCache.Set(id, bs); err != nil {
@@ -479,6 +560,20 @@ func (e *entity) setCache(id uint64, bs []byte) {
 	if e.remoteCache != nil {
 		if err := e.remoteCache.Set(id, bs); err != nil {
 			e.logger.Errorf("set remote cache failed, id: %d, err: %s", id, err.Error())
+		}
+	}
+}
+
+func (e *entity) msetCache(ids []uint64, datas [][]byte) {
+	if e.localCache != nil {
+		if err := e.localCache.MSet(ids, datas); err != nil {
+			e.logger.Errorf("set local cache failed, ids: %v, err: %s", ids, err.Error())
+		}
+	}
+
+	if e.remoteCache != nil {
+		if err := e.remoteCache.MSet(ids, datas); err != nil {
+			e.logger.Errorf("set remote cache failed, id: %v, err: %s", ids, err.Error())
 		}
 	}
 }
@@ -512,6 +607,32 @@ func (e *entity) doubleDeleteCache(id uint64) {
 	}
 }
 
+func (e *entity) doubleMDeleteCache(ids ...uint64) {
+	if e.localCache != nil {
+		if err := e.localCache.MDelete(ids...); err != nil {
+			e.logger.Errorf("failed to multi delete in local cache, ids: %v, err: %s", ids, err.Error())
+		}
+
+		e.twp.AddTask(2*time.Second, 1, func(t time.Time) {
+			if err := e.localCache.MDelete(ids...); err != nil {
+				e.logger.Errorf("failed to delay delete delete in local cache, ids: %v, err: %s", ids, err.Error())
+			}
+		})
+	}
+
+	if e.remoteCache != nil {
+		if err := e.remoteCache.MDelete(ids...); err != nil {
+			e.logger.Errorf("failed to multi delete in remote cache, ids: %v, err: %s", ids, err.Error())
+		}
+
+		e.twp.AddTask(2*time.Second, 1, func(t time.Time) {
+			if err := e.remoteCache.MDelete(ids...); err != nil {
+				e.logger.Errorf("failed to delay delete delete in remote cache, ids: %v, err: %s", ids, err.Error())
+			}
+		})
+	}
+}
+
 func genSingleFlightKey(id uint64) string {
 	return strconv.FormatUint(id, 10)
 }
@@ -524,7 +645,7 @@ func genSingleFlightKeyMulti(ids ...uint64) string {
 	buf := buffer()
 	defer releaseBuffer(buf)
 
-	// 同一时间传入的 ids 都是相同顺序的
+	// 同一时间传入的 ids 认为都是相同顺序的
 	for _, id := range ids {
 		buf.Write(zerobytes.PutUint64(id))
 	}
@@ -532,29 +653,16 @@ func genSingleFlightKeyMulti(ids ...uint64) string {
 	return buf.String()
 }
 
-// buildIdIndex 整理 id
-// [1001,1003,1005] -> {1001:0, 1003:1, 1005:2}
-func buildIdIndex(ids ...uint64) map[uint64]int {
-	idIndexs := make(map[uint64]int, len(ids))
-
-	for i, id := range ids {
-		idIndexs[id] = i
-	}
-
-	return idIndexs
-}
-
 func (e *entity) getMultiFromCache(cache WrapCache, result *Result, ids ...uint64) []uint64 {
 	vals, _ := cache.MGet(ids...)
 
 	missIds := []uint64{}
 	for _, v := range vals {
-		idx := result.IDIndexs[v.ID]
 		if v.Err == nil && len(v.Val) > 0 {
-			result.Vals[idx] = v.Val
+			result.Vals = append(result.Vals, v.Val)
 		} else {
 			if v.Err != nil {
-				result.Errs[idx] = v.Err
+				result.Errs = append(result.Errs, v.Err)
 			}
 
 			missIds = append(missIds, v.ID)

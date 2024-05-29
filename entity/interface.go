@@ -17,8 +17,10 @@ var (
 	ErrTimeout = errors.New("timeout")
 	// ErrResultIndexInvalid 无效索引
 	ErrResultIndexInvalid = errors.New("index out of range")
-	// ErrResultIdNotFound ID未找到
+	// ErrResultIdNotFound ID 未找到
 	ErrResultIdNotFound = errors.New("id not found")
+	// ErrIDCantBeNull ID 不可以为空
+	ErrIDCantBeNull = errors.New("id cant be null")
 )
 
 var (
@@ -26,7 +28,7 @@ var (
 )
 
 // QueryHandler 查询函数
-type QueryHandler func(out interface{}, ids ...uint64) error
+type QueryHandler func(out interface{}, ids ...uint64) ([]uint64, []interface{}, error)
 
 // UpdateHandler 更新函数
 type UpdateHandler func(out interface{}, id ...uint64) error
@@ -47,13 +49,16 @@ type Entity interface {
 	GetWithQuery(out interface{}, id uint64, query QueryHandler) error
 
 	// MGet 根据主键批量获取数据
-	MGet(out interface{}, ids ...uint64) (*Result, error)
+	MGet(out interface{}, ids ...uint64) error
 
 	// Update 更新数据库，更新缓存
 	Update(model interface{}, id uint64) error
 
 	// Delete 删除数据库，删除缓存
 	Delete(model interface{}, id uint64) error
+
+	// MDelete 批量删除数据库，删除缓存
+	MDelete(model interface{}, ids ...uint64) error
 
 	WithCodec(codec zerocodec.Codec) Entity
 	WithTimeout(timeout time.Duration) Entity
@@ -69,15 +74,16 @@ type Entity interface {
 
 // WrapReadDB 封装读数据库
 type WrapReadDB interface {
-	Get(id uint64, out interface{}) error
-	MGet(out interface{}, ids ...uint64) error
+	Get(out interface{}, id uint64) error
+	MGet(out interface{}, ids ...uint64) ([]uint64, []interface{}, error)
 	ErrNotFound() error
 }
 
 // WrapWriteDB 封装写数据库
 type WrapWriteDB interface {
 	Update(in interface{}) error
-	Delete(id uint64, model interface{}) error
+	Delete(model interface{}, id uint64) error
+	MDelete(model interface{}, ids ...uint64) error
 	ErrNotFound() error
 }
 
@@ -86,7 +92,9 @@ type WrapCache interface {
 	Get(id uint64) ([]byte, error)
 	MGet(ids ...uint64) ([]*Value, error)
 	Set(id uint64, in []byte) error
+	MSet(ids []uint64, datas [][]byte) error
 	Delete(id uint64) error
+	MDelete(ids ...uint64) error
 	ErrNotFound() error
 }
 
