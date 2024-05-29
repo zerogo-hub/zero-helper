@@ -41,6 +41,9 @@ type Entity interface {
 	// Build 内部有一些处理
 	Build()
 
+	// Unmarshal 解码
+	Unmarshal(in []byte, out interface{}) error
+
 	// Get 根据主键获取数据
 	Get(out interface{}, id uint64) error
 
@@ -49,7 +52,7 @@ type Entity interface {
 	GetWithQuery(out interface{}, id uint64, query QueryHandler) error
 
 	// MGet 根据主键批量获取数据
-	MGet(out interface{}, ids ...uint64) error
+	MGet(out interface{}, ids ...uint64) (*Result, error)
 
 	// Update 更新数据库，更新缓存
 	Update(model interface{}, id uint64) error

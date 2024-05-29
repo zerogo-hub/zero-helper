@@ -78,6 +78,11 @@ func (e *entity) Build() {
 	}
 }
 
+// Unmarshal 解码
+func (e *entity) Unmarshal(in []byte, out interface{}) error {
+	return e.codec.Unmarshal(in, out)
+}
+
 // Get 根据主键获取数据
 func (e *entity) Get(out interface{}, id uint64) error {
 	return e.get(out, id, nil)
@@ -89,16 +94,16 @@ func (e *entity) GetWithQuery(out interface{}, id uint64, query QueryHandler) er
 }
 
 // MGet 根据主键批量获取数据
-func (e *entity) MGet(out interface{}, ids ...uint64) error {
+func (e *entity) MGet(out interface{}, ids ...uint64) (*Result, error) {
 	if len(ids) == 0 {
-		return ErrIDCantBeNull
+		return nil, ErrIDCantBeNull
 	}
 
 	key := genSingleFlightKeyMulti(ids...)
 
 	ch := e.gMulti.DoChan(key, func() (any, error) {
 		result := &Result{
-			Vals: make([][]byte, len(ids)),
+			Vals: make([][]byte, 0, len(ids)),
 			Errs: []error{},
 		}
 
@@ -138,6 +143,9 @@ func (e *entity) MGet(out interface{}, ids ...uint64) error {
 		}
 
 		// 以下查找出来的结果会存入缓存中
+		if len(result.Errs) > 0 {
+			result.Errs = []error{}
+		}
 
 		var loadedIDs []uint64
 		var loadedDatas []interface{}
@@ -181,10 +189,10 @@ func (e *entity) MGet(out interface{}, ids ...uint64) error {
 
 	select {
 	case <-time.After(e.timeout):
-		return ErrTimeout
+		return nil, ErrTimeout
 	case ret := <-ch:
 		if ret.Err != nil {
-			return ret.Err
+			return nil, ret.Err
 		}
 
 		result := ret.Val.(*Result)
@@ -192,10 +200,10 @@ func (e *entity) MGet(out interface{}, ids ...uint64) error {
 			for _, err := range result.Errs {
 				e.logger.Error(err.Error())
 			}
-			return result.Errs[0]
+			return nil, result.Errs[0]
 		}
 
-		return e.codec.Unmarshal(ret.Val.([]byte), out)
+		return result, nil
 	}
 }
 

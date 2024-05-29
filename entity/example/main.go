@@ -170,13 +170,33 @@ func testMultiReady(database zerodatabase.Database) {
 
 func testMultiQuery(e zeroentity.Entity, logger zerologger.Logger) {
 	var accounts []Account
-	err := e.MGet(&accounts, 11, 12)
+	results, err := e.MGet(&accounts, 11, 12)
 	if err != nil {
 		logger.Errorf("[testMultiQuery] MGet failed, err: %s", err.Error())
 		return
 	}
 
-	for _, account := range accounts {
-		logger.Infof("UUID: %d, Username %s, Age: %d", account.UUID, account.Username, account.Age)
+	for _, bs := range results.Vals {
+		var account Account
+		if err := e.Unmarshal(bs, &account); err != nil {
+			logger.Errorf("[testMultiQuery] Unmarshal failed: %s", err.Error())
+		} else {
+			logger.Infof("[testMultiQuery] from DB, UUID: %d, Username: %s", account.UUID, account.Username)
+		}
+	}
+
+	results, err = e.MGet(&accounts, 11, 12)
+	if err != nil {
+		logger.Errorf("[testMultiQuery] MGet failed, err: %s", err.Error())
+		return
+	}
+
+	for _, bs := range results.Vals {
+		var account Account
+		if err := e.Unmarshal(bs, &account); err != nil {
+			logger.Errorf("[testMultiQuery] Unmarshal failed: %s", err.Error())
+		} else {
+			logger.Infof("[testMultiQuery] from cache, UUID: %d, Username: %s", account.UUID, account.Username)
+		}
 	}
 }
