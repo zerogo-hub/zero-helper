@@ -93,3 +93,43 @@ func TestRangeUint32(t *testing.T) {
 		}
 	}
 }
+
+func TestBytes(t *testing.T) {
+	length := 10
+	result := zerorandom.Bytes(length)
+	if len(result) != length {
+		t.Errorf("Expected length of result to be %d, but got %d", length, len(result))
+	}
+}
+
+func TestLowerBytes(t *testing.T) {
+	length := 10
+	result := zerorandom.LowerBytes(length)
+	if len(result) != length {
+		t.Errorf("Expected length of result to be %d, but got %d", length, len(result))
+	}
+}
+
+func TestLowerWithNumberBytes(t *testing.T) {
+	length := 10
+	result := zerorandom.LowerWithNumberBytes(length)
+	if len(result) != length {
+		t.Errorf("Expected length of result to be %d, but got %d", length, len(result))
+	}
+}
+
+func TestUpperBytes(t *testing.T) {
+	length := 10
+	result := zerorandom.UpperBytes(length)
+	if len(result) != length {
+		t.Errorf("Expected length of result to be %d, but got %d", length, len(result))
+	}
+}
+
+func TestUpperWithNumberBytes(t *testing.T) {
+	length := 10
+	result := zerorandom.UpperWithNumberBytes(length)
+	if len(result) != length {
+		t.Errorf("Expected length of result to be %d, but got %d", length, len(result))
+	}
+}

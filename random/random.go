@@ -55,6 +55,44 @@ func rs(letters []byte, length int) string {
 	return buf.String()
 }
 
+// Bytes 获取指定长度的字符串，包括大小写字母和数字
+func Bytes(length int) []byte {
+	return rb(allLetters, length)
+}
+
+// LowerBytes 获取指定长度的字符串，仅包含小写字母
+func LowerBytes(length int) []byte {
+	return rb(lowerLetters, length)
+}
+
+// LowerWithNumber 获取指定长度的字符串，包含小写字母和数字
+func LowerWithNumberBytes(length int) []byte {
+	return rb(lowerNumberLetters, length)
+}
+
+// Upper 获取指定长度的字符串，仅包含大写字母
+func UpperBytes(length int) []byte {
+	return rb(upperLetters, length)
+}
+
+// UpperWithNumber 获取指定长度的字符串，包含大写字母和数字
+func UpperWithNumberBytes(length int) []byte {
+	return rb(upperNumberLetters, length)
+}
+
+func rb(letters []byte, length int) []byte {
+	buf := buffer()
+	defer releaseBuffer(buf)
+
+	r := libMathRand.New(libMathRand.NewSource(libTime.Now().UnixNano()))
+
+	for start := 0; start < length; start++ {
+		buf.WriteByte(letters[r.Intn(len(letters))])
+	}
+
+	return buf.Bytes()
+}
+
 // Int 获取指定范围内的整数
 // 返回值 [min, max)
 func Int(min, max int64) int64 {

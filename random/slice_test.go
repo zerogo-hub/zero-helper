@@ -9,9 +9,10 @@ import (
 func TestSliceShuffle(t *testing.T) {
 	lint := []int{3, 2, 1, 8}
 	zerorandom.SliceShuffle(lint)
-	t.Log(lint)
 
 	lstring := []string{"C", "D", "A", "F"}
 	zerorandom.SliceShuffle(lstring)
-	t.Log(lstring)
+
+	lnochange := []int{1}
+	zerorandom.SliceShuffle(lnochange)
 }
