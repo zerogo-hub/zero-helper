@@ -54,6 +54,9 @@ type Entity interface {
 	// MGet 根据主键批量获取数据
 	MGet(out interface{}, ids ...uint64) (*Result, error)
 
+	// Set 缓存数据
+	Set(in interface{}, id uint64) error
+
 	// Update 更新数据库，更新缓存
 	Update(model interface{}, id uint64) error
 

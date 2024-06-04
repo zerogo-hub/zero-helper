@@ -207,6 +207,18 @@ func (e *entity) MGet(out interface{}, ids ...uint64) (*Result, error) {
 	}
 }
 
+// Set 缓存数据
+func (e *entity) Set(in interface{}, id uint64) error {
+	bs, err := e.codec.Marshal(in)
+	if err != nil {
+		return err
+	}
+
+	e.setCache(id, bs)
+
+	return nil
+}
+
 // Update 更新
 func (e *entity) Update(model interface{}, id uint64) error {
 	if e.writeDB != nil {
