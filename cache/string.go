@@ -2,6 +2,8 @@ package cache
 
 import (
 	"github.com/gomodule/redigo/redis"
+
+	zerobytes "github.com/zerogo-hub/zero-helper/bytes"
 )
 
 // Get 返回 key 所关联的字符串
@@ -11,7 +13,11 @@ func (c *cache) Get(key string) (string, error) {
 
 // GetBytes 返回 key 所关联的数据
 func (c *cache) GetBytes(key string) ([]byte, error) {
-	return redis.Bytes(key, nil)
+	r, err := c.Get(key)
+	if err != nil {
+		return nil, err
+	}
+	return zerobytes.StringToBytes(r), nil
 }
 
 // Set 将字符串 value 关联到 key

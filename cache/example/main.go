@@ -11,9 +11,9 @@ var (
 	// RedisHost ...
 	RedisHost = "127.0.0.1"
 	// RedisPort ...
-	RedisPort = 11234
+	RedisPort = 6379
 	// RedisPassword ...
-	RedisPassword = "uio876..."
+	RedisPassword = ""
 )
 
 var log = zerologger.NewSampleLogger()
