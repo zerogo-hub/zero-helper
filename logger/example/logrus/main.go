@@ -13,6 +13,7 @@ func main() {
 		panic(err)
 	}
 
+	log.SetLevel(zerologger.INFO)
 	log.Debug("Debug log")
 	log.Info("Info log")
 	log.Warn("Warn log")

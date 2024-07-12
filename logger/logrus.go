@@ -56,8 +56,13 @@ func NewLogrusLogger(logName, logPath string, caller, json bool, maxAge, rotatio
 
 	logger := logrus.New()
 
-	timeFormat := "2006-01-02 15:04:05.000"
+	// logrus 固定了 runtime.Caller 级别，造成打印出的是本页面的函数，尚未提供接口进行修改
+	// 禁用自带的方法，使用 hook 方式添加自定义方法
+	if caller {
+		logger.AddHook(newCallerHook())
+	}
 
+	timeFormat := "2006-01-02 15:04:05.000"
 	lfsHook := lfshook.NewHook(lfshook.WriterMap{
 		logrus.DebugLevel: writer,
 		logrus.InfoLevel:  writer,
@@ -75,14 +80,6 @@ func NewLogrusLogger(logName, logPath string, caller, json bool, maxAge, rotatio
 
 	logger.AddHook(lfsHook)
 	logger.SetLevel(logrus.DebugLevel)
-
-	// logrus 固定了 runtime.Caller 级别，造成打印出的是本页面的函数，尚未提供接口进行修改
-	// 禁用自带的方法，使用 hook 方式添加自定义方法
-	// logger.SetReportCaller(caller)
-	// callerHook(logger)
-	if caller {
-		logger.AddHook(newCallerHook())
-	}
 
 	return &logrusLog{
 		logger: logger,
