@@ -64,17 +64,18 @@ func NewLogrusLogger(logName, logPath string, caller, json bool, maxAge, rotatio
 		logrus.WarnLevel:  writer,
 		logrus.ErrorLevel: writer,
 		logrus.FatalLevel: writer,
-	}, &logrus.JSONFormatter{
+	}, &logrus.TextFormatter{
 		TimestampFormat: timeFormat,
 	})
-	logger.AddHook(lfsHook)
-
-	logger.SetLevel(logrus.DebugLevel)
 	if json {
-		logger.SetFormatter(&logrus.JSONFormatter{
+		lfsHook.SetFormatter(&logrus.JSONFormatter{
 			TimestampFormat: timeFormat,
 		})
 	}
+
+	logger.AddHook(lfsHook)
+	logger.SetLevel(logrus.DebugLevel)
+
 	// logrus 固定了 runtime.Caller 级别，造成打印出的是本页面的函数，尚未提供接口进行修改
 	// 禁用自带的方法，使用 hook 方式添加自定义方法
 	// logger.SetReportCaller(caller)

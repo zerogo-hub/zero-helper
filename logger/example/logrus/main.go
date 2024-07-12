@@ -6,7 +6,9 @@ import (
 )
 
 func main() {
-	log, err := zerologger.NewLogrusLogger("testlog", "./log", true, true, zerotime.Hour(7*24), zerotime.Hour(1))
+	caller := true
+	isJSONStyle := false
+	log, err := zerologger.NewLogrusLogger("testlog", "./log", caller, isJSONStyle, zerotime.Hour(7*24), zerotime.Hour(1))
 	if err != nil {
 		panic(err)
 	}
