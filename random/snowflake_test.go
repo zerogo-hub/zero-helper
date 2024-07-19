@@ -64,11 +64,72 @@ func TestSnowflakeBy(t *testing.T) {
 
 func TestShortSnowflake(t *testing.T) {
 	snowflake, _ := zerorandom.NewBit46Snowflake(1)
-	uuid, _ := snowflake.UnsafeUUID()
-	t.Log(uuid)
+	uuids := make(map[uint64]struct{}, 100)
+
+	for i := 0; i < 100; i++ {
+		id, err := snowflake.UnsafeUUID()
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if _, exist := uuids[id]; exist {
+			t.Fatalf("%d repeated", id)
+		}
+		uuids[id] = struct{}{}
+	}
 
 	if _, err := zerorandom.NewBit46Snowflake(-1); err == nil {
 		t.Error("test invalid workID failed")
+	}
+}
+
+func TestShortSnowflakeRepeat(t *testing.T) {
+	snowflake0, _ := zerorandom.NewBit46Snowflake(0)
+	snowflake1, _ := zerorandom.NewBit46Snowflake(1)
+
+	// 检查 1000 个中是否有重复生成
+	n := 1000
+	ids1 := make([]uint64, 0, n*2)
+	ids2 := make([]uint64, 0, n)
+
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+
+		for i := 0; i < n; i++ {
+			id, err := snowflake0.UUID()
+			if err != nil {
+				t.Error(err.Error())
+				continue
+			}
+			ids1 = append(ids1, id)
+		}
+	}()
+	go func() {
+		defer wg.Done()
+
+		for i := 0; i < n; i++ {
+			id, err := snowflake1.UUID()
+			if err != nil {
+				t.Error(err.Error())
+				continue
+			}
+			ids2 = append(ids2, id)
+		}
+	}()
+
+	wg.Wait()
+
+	ids1 = append(ids1, ids2...)
+
+	existIDs := make(map[uint64]struct{}, len(ids1))
+
+	for _, id := range ids1 {
+		if _, ok := existIDs[id]; ok {
+			t.Fatal("Duplicate id")
+		}
+		existIDs[id] = struct{}{}
 	}
 }
 

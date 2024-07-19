@@ -1,10 +1,9 @@
 // Package random 雪花算法修改版
-// 0 - 毫秒时间戳(41 bit) - 序列号(12 bit) - 机器 id(10 bit)
-// 0 - 69年 - 4000(每秒 1000 * 4000 个 uuid) - 1000
 //
 // 时间回拨处理:
 // 1 当相差 15 ms 之内时，等待时间追上
-// 2 当超过 15 ms 时，直接替换机器 id
+// 2 当超过 15 ms 时，直接替换节点 id
+// 2.1 需要实现 nextWorkIDFunc 和 backWorkIDFunc 函数
 package random
 
 import (
@@ -60,7 +59,7 @@ type Snowflake struct {
 	lock sync.Mutex
 
 	// 计时起始时间，影响 41 bit 的毫秒时间戳有效性
-	// 41 bit 可以存储 69 年
+	// 41 bit 可以使 69 年内不重复
 	originTime int64
 
 	// 节点占用的字节数量，会影响 maxWorkerID
@@ -82,14 +81,34 @@ type Snowflake struct {
 	backWorkIDFunc SnowflakeBackWorkIDFunc
 }
 
-// NewSnowflake 创建生成器
+// NewSnowflake 创建默认生成器
 // workID 取值 [0,1023]
+//
+// 配置:
+//
+// 0(1 bit) - 毫秒时间戳(41 bit) - 节点 id(10 bit) - 序列号(12 bit)
+//
+// 毫秒时间戳(41 bit)：存储毫秒时间戳，取值范围 [0,1<<41)，目前存储的是当前毫秒时间戳与 originTime 的差值，可以在 69 年内保障唯一，可以设置 SetOriginTime 修改这 69 年的起始时间
+//
+// 节点 id(10 bit): 可以分布在 1023 个节点上
+//
+// 序列号(12 bit)：每毫秒可以生成 4095 个 UUID
 func NewSnowflake(workerID int) (*Snowflake, error) {
 	return NewSnowflakeBy(workerID, defaultSnowflakeOriginTime, defaultSnowflakeWorkerIDBits, defaultSnowflakeSequenceBits, nil, nil)
 }
 
 // NewSnowflakeBy 创建生成器
 func NewSnowflakeBy(workerID int, originTime int64, workerIDBits int, sequenceBits int, nextWorkIDFunc SnowflakeNextWorkIDFunc, backWorkIDFunc SnowflakeBackWorkIDFunc) (*Snowflake, error) {
+	// -1 ^ (-1 << 3)
+	// 其中:
+	// -1 << 3:
+	// -1 的原码: 1000 0001
+	// -1 的反码: 1111 1110 (负数的反码为原码符号位不变，其余位取反)
+	// -1 的补码: 1111 1111 (负数的补码的值可以等于 反码 + 1)
+	// 左移 3 位后, 1111 1000
+	// 与 -1 异或后, 0000 0111 表示传入的值为 3 的时候，最大值为 7
+	// 表示 workID 取值范围 [0, 7]
+
 	maxWorkerID := -1 ^ (-1 << workerIDBits)
 	maxSequence := -1 ^ (-1 << sequenceBits)
 
@@ -138,7 +157,7 @@ func (snowflake *Snowflake) UnsafeUUID() (uint64, error) {
 }
 
 func (snowflake *Snowflake) generateUUID() (uint64, error) {
-	t := snowflakeNow() - snowflake.originTime
+	t := snowflake.snowflakeNow()
 	// 时间回拨，可能会使得产生的 uuid 重复
 	if t < snowflake.lastTimestamp {
 		if snowflake.lastTimestamp-t <= 15 {
@@ -191,21 +210,21 @@ func (snowflake *Snowflake) generateUUID() (uint64, error) {
 
 // wait 等到当前时间 > 上一次的时间
 func (snowflake *Snowflake) wait() int64 {
-	t := snowflakeNow()
+	t := snowflake.snowflakeNow()
 
 	for t <= snowflake.lastTimestamp {
 		zerotime.SleepMircosecond(100)
-		t = snowflakeNow()
+		t = snowflake.snowflakeNow()
 	}
 
 	return t
 }
 
-func snowflakeNow() int64 {
+func (snowflake *Snowflake) snowflakeNow() int64 {
 	if !testSnowflakeTimebackward {
-		return zerotime.MS()
+		return zerotime.MS() - snowflake.originTime
 	}
-	return zerotime.MS() - 10000000
+	return zerotime.MS() - snowflake.originTime
 }
 
 // SetSnowflakeTestTimebackward 测试时间回退
