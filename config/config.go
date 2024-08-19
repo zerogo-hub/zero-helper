@@ -9,6 +9,8 @@ import (
 
 	"github.com/BurntSushi/toml"
 	yaml "gopkg.in/yaml.v2"
+
+	zerojson "github.com/zerogo-hub/zero-helper/json"
 )
 
 // eg:
@@ -50,6 +52,9 @@ type Load interface {
 
 	// FileYAML 从 yaml 文件中读取配置
 	FileYAML(path string) error
+
+	// ReadJSON 从 json 文本中读取配置，并赋值到 out 中
+	ReadJSON(path string, out interface{}) error
 }
 
 // Get 获取配置数据
@@ -202,6 +207,16 @@ func (c *config) FileYAML(path string) error {
 		return err
 	}
 	return c.LoadYAML(bytes)
+}
+
+// ReadJSON 从 json 文本中读取配置，并赋值到 out 中
+func (c *config) ReadJSON(path string, out interface{}) error {
+	bytes, err := loadFile(path)
+	if err != nil {
+		return err
+	}
+
+	return zerojson.Unmarshal(bytes, out)
 }
 
 // Any 根据 key 获取对应数据

@@ -687,3 +687,21 @@ func TestDF64_ConfigValueConversionError(t *testing.T) {
 		t.Errorf("Expected %f, but got %f", expected, result)
 	}
 }
+
+type readJSONResult struct {
+	Framework string `json:"framework"`
+	Age       int    `json:"age"`
+}
+
+func TestReadJSONWithSpecialCharacters(t *testing.T) {
+	c := zeroconfig.NewConfig()
+
+	var config readJSONResult
+	if err := c.ReadJSON("./json_test.json", &config); err != nil {
+		t.Fatalf("read json failed, err: %s", err.Error())
+	}
+
+	if config.Framework != "gweb" || config.Age != 18 {
+		t.Fatal("invalid value")
+	}
+}
