@@ -12,9 +12,13 @@ import (
 	zerotime "github.com/zerogo-hub/zero-helper/time"
 )
 
+type CalcSignHandler func(client *HTTPClient, secret string, values map[string]interface{}) (string, error)
+
 // WithSign 自动签名中间件，自动添加 timestamp, nonce, sign 值
 // secret: 签名使用，签名方式见 github.com/zerogo-hub/zero-api-middleware/sign
-func WithSign(client *HTTPClient, secret string) {
+//
+// zerohttpclient.WithSign(client, "secret")
+func WithSign(client *HTTPClient, secret string, calcSignFN CalcSignHandler) {
 	handler := func(client *HTTPClient, method, url string) error {
 		timestamp := zerotime.Now()
 		nonce := zerorandom.LowerWithNumber(32)
@@ -32,7 +36,15 @@ func WithSign(client *HTTPClient, secret string) {
 				"nonce":     nonce,
 			})
 
-			sign, err := calcSign(client, secret, client.Params())
+			var sign string
+			var err error
+
+			if calcSignFN != nil {
+				sign, err = calcSignFN(client, secret, client.Params())
+			} else {
+				sign, err = calcSign(client, secret, client.Params())
+			}
+
 			if err != nil {
 				return err
 			}
@@ -47,7 +59,15 @@ func WithSign(client *HTTPClient, secret string) {
 				"nonce":     nonce,
 			})
 
-			sign, err := calcSign(client, secret, client.Body())
+			var sign string
+			var err error
+
+			if calcSignFN != nil {
+				sign, err = calcSignFN(client, secret, client.Body())
+			} else {
+				sign, err = calcSign(client, secret, client.Body())
+			}
+
 			if err != nil {
 				return err
 			}
