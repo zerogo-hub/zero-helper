@@ -3,6 +3,7 @@ package httpclient
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -77,6 +78,9 @@ type HTTPClient struct {
 
 	// 是否启用缓存，只对 GET 请求有效，需要每次调用时设置
 	isCache bool
+
+	// 是否忽略 TLS 验证
+	isIgnoreTLS bool
 
 	// 缓存过期时间，默认 60 秒
 	cacheTTL time.Duration
@@ -273,6 +277,12 @@ func (client *HTTPClient) WithCacheKey(cacheKey string) *HTTPClient {
 	return client
 }
 
+func (client *HTTPClient) WithIgnoreTLS(isCheck bool) *HTTPClient {
+	client.isIgnoreTLS = !isCheck
+
+	return client
+}
+
 // WithDefaultBefores 设置默认执行前函数
 func (client *HTTPClient) WithDefaultBefores(handlers ...BeforeHandler) *HTTPClient {
 	client.defaultBefores = append(client.defaultBefores, handlers...)
@@ -451,7 +461,9 @@ func (client *HTTPClient) do(method, url string) *Context {
 }
 
 func (client *HTTPClient) prepareTransport() (*http.Transport, error) {
-	transport := &http.Transport{}
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: client.isIgnoreTLS},
+	}
 
 	transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
 		conn, err := net.DialTimeout(network, addr, client.dialTimeout)
