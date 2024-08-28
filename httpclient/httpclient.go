@@ -277,8 +277,8 @@ func (client *HTTPClient) WithCacheKey(cacheKey string) *HTTPClient {
 	return client
 }
 
-func (client *HTTPClient) WithIgnoreTLS(isCheck bool) *HTTPClient {
-	client.isIgnoreTLS = !isCheck
+func (client *HTTPClient) WithIgnoreTLS(isIgnore bool) *HTTPClient {
+	client.isIgnoreTLS = isIgnore
 
 	return client
 }
