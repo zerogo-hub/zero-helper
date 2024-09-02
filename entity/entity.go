@@ -269,12 +269,31 @@ func (e *entity) MDelete(model interface{}, ids ...uint64) error {
 	}
 
 	if e.delete != nil {
-		e.delete(model, ids...)
+		if err := e.delete(model, ids...); err != nil {
+			e.logger.Errorf("delete in e.delete, id: %v, err: %s", ids, err.Error())
+		}
 	}
 
 	e.doubleMDeleteCache(ids...)
 
 	return nil
+}
+
+// RemoveCache 仅删除缓存
+func (e *entity) RemoveCache(id uint64) {
+	if e.localCache != nil {
+		// 立即从缓存中删除
+		if err := e.localCache.Delete(id); err != nil && err != e.localCache.ErrNotFound() {
+			e.logger.Errorf("failed to delete in local cache, id: %d, err: %s", id, err.Error())
+		}
+	}
+
+	if e.remoteCache != nil {
+		// 立即从缓存中删除
+		if err := e.remoteCache.Delete(id); err != nil && err != e.remoteCache.ErrNotFound() {
+			e.logger.Errorf("failed to delete in remote cache, id: %d, err: %s", id, err.Error())
+		}
+	}
 }
 
 // WithCodec 设置编码解码器

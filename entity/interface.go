@@ -66,6 +66,9 @@ type Entity interface {
 	// MDelete 批量删除数据库，删除缓存
 	MDelete(model interface{}, ids ...uint64) error
 
+	// RemoveCache 仅删除缓存
+	RemoveCache(id uint64)
+
 	WithCodec(codec zerocodec.Codec) Entity
 	WithTimeout(timeout time.Duration) Entity
 	WithNotFoundExipred(expired time.Duration) Entity
