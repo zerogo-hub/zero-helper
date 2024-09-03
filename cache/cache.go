@@ -36,6 +36,7 @@ type Cache interface {
 	Set
 	SortedSet
 	Bit
+	Script
 }
 
 // Conn ..
@@ -164,6 +165,11 @@ type SortedSet interface {
 type Bit interface {
 	GetBit(key string, offset int64) (int64, error)
 	SetBit(key string, offset, value int64) (int64, error)
+}
+
+// Script 脚本
+type Script interface {
+	Eval(script string, keyCount int, args ...interface{}) (interface{}, error)
 }
 
 // TODO Pub/Sub

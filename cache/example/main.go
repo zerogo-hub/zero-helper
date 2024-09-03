@@ -57,6 +57,10 @@ func main() {
 		log.Errorf("testBit failed: %s", err.Error())
 	}
 
+	if err := testScript(c); err != nil {
+		log.Errorf("testScript failed: %s", err.Error())
+	}
+
 	log.Info("test cache success")
 }
 
@@ -391,6 +395,32 @@ func testBit(c zerocache.Cache) error {
 	}
 	if n != 0 {
 		return errors.New("testBit error 3")
+	}
+
+	return nil
+}
+
+func testScript(c zerocache.Cache) error {
+	key := "key:script:" + zerotime.Date(zerotime.YMDHMS3)
+	_, _ = c.Expire(key, "120")
+
+	results, err := c.Eval("return {KEYS[1],ARGV[1]}", 1, "key1", 100)
+	if err != nil {
+		return err
+	}
+
+	values, ok := results.([]interface{})
+	if !ok {
+		return errors.New("testScript error 1")
+	}
+	if len(values) != 2 {
+		return errors.New("testScript error 2")
+	}
+	if string(values[0].([]byte)) != "key1" {
+		return errors.New("testScript error 3")
+	}
+	if string(values[1].([]byte)) != "100" {
+		return errors.New("testScript error 3")
 	}
 
 	return nil
