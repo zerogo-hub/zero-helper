@@ -5,6 +5,7 @@ import (
 
 	zerocache "github.com/zerogo-hub/zero-helper/cache"
 	zerologger "github.com/zerogo-hub/zero-helper/logger"
+	zerotime "github.com/zerogo-hub/zero-helper/time"
 )
 
 var (
@@ -34,27 +35,26 @@ func main() {
 
 	if err := testString(c); err != nil {
 		log.Errorf("testString failed: %s", err.Error())
-		return
 	}
 
 	if err := testHash(c); err != nil {
 		log.Errorf("testHash failed: %s", err.Error())
-		return
 	}
 
 	if err := testList(c); err != nil {
 		log.Errorf("testList failed: %s", err.Error())
-		return
 	}
 
 	if err := testSet(c); err != nil {
 		log.Errorf("testSet failed: %s", err.Error())
-		return
 	}
 
 	if err := testSortedSet(c); err != nil {
 		log.Errorf("testSortedSet failed: %s", err.Error())
-		return
+	}
+
+	if err := testBit(c); err != nil {
+		log.Errorf("testBit failed: %s", err.Error())
 	}
 
 	log.Info("test cache success")
@@ -362,5 +362,36 @@ func testSortedSet(c zerocache.Cache) error {
 	}
 
 	// c.DO("FLUSHDB")
+	return nil
+}
+
+func testBit(c zerocache.Cache) error {
+	key := "key:bit:" + zerotime.Date(zerotime.YMDHMS3)
+	_, _ = c.Expire(key, "120")
+
+	n, err := c.SetBit(key, 5, 1)
+	if err != nil {
+		return err
+	}
+	if n != 0 {
+		return errors.New("testBit error 1")
+	}
+
+	n, err = c.SetBit(key, 5, 0)
+	if err != nil {
+		return err
+	}
+	if n != 1 {
+		return errors.New("testBit error 2")
+	}
+
+	n, err = c.GetBit(key, 5)
+	if err != nil {
+		return err
+	}
+	if n != 0 {
+		return errors.New("testBit error 3")
+	}
+
 	return nil
 }

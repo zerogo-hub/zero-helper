@@ -35,6 +35,7 @@ type Cache interface {
 	List
 	Set
 	SortedSet
+	Bit
 }
 
 // Conn ..
@@ -157,6 +158,12 @@ type SortedSet interface {
 	ZRemRangeByScore(key string, min, max int) (int, error)
 	ZRemRangeByRank(key string, start, stop int) (int, error)
 	ZRem(v ...interface{}) (int, error)
+}
+
+// Bit 位
+type Bit interface {
+	GetBit(key string, offset int64) (int64, error)
+	SetBit(key string, offset, value int64) (int64, error)
 }
 
 // TODO Pub/Sub
