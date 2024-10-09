@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"errors"
 	"time"
 
 	"github.com/gomodule/redigo/redis"
@@ -13,9 +14,15 @@ func (c *cache) Publish(channel string, message interface{}) (int, error) {
 }
 
 // Subscribe 订阅给定的一个或多个频道的信息
-// onReady 所有频道都订阅成功时调用
+// onReady 所有频道都订阅成功时调用，可选
 // onMessage 接收到信息时调用
+// num1 订阅失败后重试次数
+// num2 发生异常后重试次数，-1 表示一直重试
 func (c *cache) Subscribe(onReady func() error, onMessage func(channel string, data []byte) error, num1, num2 int, channels ...string) error {
+	if onMessage == nil {
+		return errors.New("onMessage cant be nil")
+	}
+
 	psc := redis.PubSubConn{Conn: c.pool.Get()}
 
 	if err := psc.Subscribe(redis.Args{}.AddFlat(channels)...); err != nil {
@@ -42,9 +49,11 @@ func (c *cache) Subscribe(onReady func() error, onMessage func(channel string, d
 			case redis.Subscription:
 				switch v.Count {
 				case len(channels):
-					if err := onReady(); err != nil {
-						quit <- err
-						return
+					if onReady != nil {
+						if err := onReady(); err != nil {
+							quit <- err
+							return
+						}
 					}
 				case 0:
 					// 所有频道都解除订阅

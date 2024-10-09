@@ -180,7 +180,7 @@ type PubSub interface {
 	Publish(channel string, message interface{}) (int, error)
 
 	// Subscribe 订阅给定的一个或多个频道的信息
-	// onReady 所有频道都订阅成功时调用
+	// onReady 所有频道都订阅成功时调用，可选
 	// onMessage 接收到信息时调用
 	// num1 订阅失败后重试次数
 	// num2 发生异常后重试次数，-1 表示一直重试
