@@ -2,6 +2,8 @@ package main
 
 import (
 	"errors"
+	"fmt"
+	"time"
 
 	zerocache "github.com/zerogo-hub/zero-helper/cache"
 	zerologger "github.com/zerogo-hub/zero-helper/logger"
@@ -59,6 +61,10 @@ func main() {
 
 	if err := testScript(c); err != nil {
 		log.Errorf("testScript failed: %s", err.Error())
+	}
+
+	if err := testPubSub(c); err != nil {
+		log.Errorf("testPubSub failed: %s", err.Error())
 	}
 
 	log.Info("test cache success")
@@ -421,6 +427,46 @@ func testScript(c zerocache.Cache) error {
 	}
 	if string(values[1].([]byte)) != "100" {
 		return errors.New("testScript error 3")
+	}
+
+	return nil
+}
+
+func testPubSub(c zerocache.Cache) error {
+	quit := make(chan struct{}, 1)
+
+	onReady := func() error {
+		fmt.Println("onReady")
+		for i := 0; i < 5; i++ {
+			n, err := c.Publish("testC", []byte(fmt.Sprintf("message %d", i+1)))
+			if err != nil {
+				return err
+			}
+			if n == 0 {
+				return errors.New("no channel received")
+			}
+		}
+
+		time.Sleep(time.Second)
+
+		quit <- struct{}{}
+		return nil
+	}
+
+	onMessage := func(channel string, data []byte) error {
+		fmt.Println("receive from channel: ", channel, string(data))
+		return nil
+	}
+
+	if err := c.Subscribe(onReady, onMessage, 0, -1, "testC"); err != nil {
+		return err
+	}
+
+	select {
+	case <-quit:
+		fmt.Println("done")
+	case <-time.After(5 * time.Second):
+		fmt.Println("timeout")
 	}
 
 	return nil

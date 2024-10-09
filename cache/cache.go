@@ -37,6 +37,7 @@ type Cache interface {
 	SortedSet
 	Bit
 	Script
+	PubSub
 }
 
 // Conn ..
@@ -172,7 +173,20 @@ type Script interface {
 	Eval(script string, keyCount int, args ...interface{}) (interface{}, error)
 }
 
-// TODO Pub/Sub
+// Pub/Sub
+type PubSub interface {
+	// Publish 将信息 message 发送到指定的频道 channel
+	// return number of clients that received the message
+	Publish(channel string, message interface{}) (int, error)
+
+	// Subscribe 订阅给定的一个或多个频道的信息
+	// onReady 所有频道都订阅成功时调用
+	// onMessage 接收到信息时调用
+	// num1 订阅失败后重试次数
+	// num2 发生异常后重试次数，-1 表示一直重试
+	Subscribe(onReady func() error, onMessage func(channel string, data []byte) error, num1, num2 int, channels ...string) error
+}
+
 // TODO Transaction
 // TODO Server
 
