@@ -3,6 +3,7 @@ package random
 import (
 	"errors"
 	"math/rand"
+	"time"
 )
 
 type integer interface {
@@ -49,7 +50,8 @@ func NewChooser[T any, W integer](items []T, getWeight WeightHandler[T, W]) (*Ch
 }
 
 func (c *Chooser[T, W]) Pick() T {
-	r := rand.Int63n(c.max) + 1
+	rs := rand.New(rand.NewSource(time.Now().UnixNano()))
+	r := rs.Int63n(c.max) + 1
 
 	// 实际应用中，数量较少，直接遍历
 	i := 0
