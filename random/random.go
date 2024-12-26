@@ -99,7 +99,9 @@ func Int(min, max int64) int64 {
 	if min >= max || min == max {
 		return max
 	}
-	return libMathRand.Int63n(max-min) + min
+
+	r := libMathRand.New(libMathRand.NewSource(libTime.Now().UnixNano()))
+	return r.Int63n(max-min) + min
 }
 
 // Uint32 获取随机数，类型为 uint32

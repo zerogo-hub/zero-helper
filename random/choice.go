@@ -68,3 +68,17 @@ func PickOnce[T any, W integer](items []T, getWeight WeightHandler[T, W]) T {
 	c, _ := NewChooser(items, getWeight)
 	return c.Pick()
 }
+
+// Pick 不带权重，直接随机一个
+func Pick(data []interface{}) (interface{}, error) {
+	if len(data) == 0 {
+		return nil, errors.New("data can not be empty")
+	}
+
+	if len(data) == 1 {
+		return data[0], nil
+	}
+
+	rs := rand.New(rand.NewSource(time.Now().UnixNano()))
+	return data[rs.Intn(len(data))], nil
+}
