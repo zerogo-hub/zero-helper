@@ -243,3 +243,25 @@ func TodayID() int {
 	year, month, day := now.Date()
 	return year*10000 + int(month)*100 + day
 }
+
+// YesterdayID 以昨日日期为编号
+//
+// eg: TodayID() => 20250101
+// eg: YesterdayID() => 20241231
+func YesterdayID() int {
+	return DayID(-1)
+}
+
+// DayID 以日期做为编号
+//
+// offset 与今日相差多少条
+func DayID(offset int) int {
+	if offset == 0 {
+		return TodayID()
+	}
+
+	now := time.Now().AddDate(0, 0, offset)
+
+	year, month, day := now.Date()
+	return year*10000 + int(month)*100 + day
+}
