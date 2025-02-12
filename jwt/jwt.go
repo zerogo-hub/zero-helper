@@ -24,11 +24,11 @@ type JWT interface {
 }
 
 type jwt struct {
-	opt Option
+	opt *Option
 }
 
 // NewJWT 创建一个 jwt
-func NewJWT(opts ...Option) JWT {
+func NewJWT(opts ...*Option) JWT {
 	jwt := &jwt{
 		opt: defaultOption(),
 	}

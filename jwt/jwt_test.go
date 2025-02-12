@@ -9,7 +9,7 @@ import (
 
 func TestToken(t *testing.T) {
 
-	j := zerojwt.NewJWT(zerojwt.Option{
+	j := zerojwt.NewJWT(&zerojwt.Option{
 		Secret: []byte("12345"),
 		Exp:    zerotime.Minute(5),
 	})
@@ -44,7 +44,7 @@ func TestToken(t *testing.T) {
 func TestTokenWithKey(t *testing.T) {
 	key := []byte("GIiK325IynHKxEAZ")
 
-	j := zerojwt.NewJWT(zerojwt.Option{
+	j := zerojwt.NewJWT(&zerojwt.Option{
 		Exp: zerotime.Minute(5),
 	})
 
@@ -77,7 +77,7 @@ func TestTokenWithKey(t *testing.T) {
 
 func TestInvalidToken(t *testing.T) {
 
-	j := zerojwt.NewJWT(zerojwt.Option{
+	j := zerojwt.NewJWT(&zerojwt.Option{
 		Secret: []byte("12345"),
 		Exp:    zerotime.Millisecond(1000),
 	})

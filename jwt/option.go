@@ -17,8 +17,8 @@ type Option struct {
 }
 
 // defaultOption 默认配置
-func defaultOption() Option {
-	return Option{
+func defaultOption() *Option {
+	return &Option{
 		Secret: []byte("123456"),
 		Exp:    time.Minute * 5,
 	}
