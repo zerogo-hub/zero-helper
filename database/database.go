@@ -55,7 +55,12 @@ func (d *database) Open() error {
 		DisableDatetimePrecision:  true,  // 禁用 datetime 精度，MySQL 5.6 之前的数据库不支持
 		DontSupportRenameIndex:    true,  // 重命名索引时采用删除并新建的方式，MySQL 5.7 之前的数据库和 MariaDB 不支持重命名索引
 		SkipInitializeWithVersion: false, // 根据当前 MySQL 版本自动配置
-	}), &gorm.Config{})
+	}), &gorm.Config{
+		CreateBatchSize:        2000,
+		SkipDefaultTransaction: true, // 对于写操作（创建、更新、删除），为了确保数据的完整性，GORM 会将它们封装在事务内运行。但这会降低性能
+		PrepareStmt:            true, // 在执行任何SQL时都会创建一个prepared statement并将其缓存，以提高后续的效率
+		DisableAutomaticPing:   true, // 在完成初始化后,GORM 会自动 ping 数据库以检查数据库的可用性
+	})
 	if err != nil {
 		return err
 	}
@@ -73,6 +78,10 @@ func (d *database) Open() error {
 	}
 	if d.conf.maxConnLifeTime > 0 {
 		sqlDB.SetConnMaxLifetime(time.Duration(d.conf.maxConnLifeTime) * time.Second)
+	}
+	if err := sqlDB.Ping(); err != nil {
+		sqlDB.Close()
+		return err
 	}
 
 	d.db = db
